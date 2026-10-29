@@ -2,7 +2,7 @@ export const workoutTemplates = [
   {
     key: "upper_a",
     name: "Upper A",
-    description: "Horizontal push and pull · ~45 min",
+    description: "Horizontal push and pull",
     exercises: [
       { key: "bench_press", name: "Barbell bench press", sets: 3, repMin: 6, repMax: 8, rest: 120 },
       { key: "barbell_row", name: "Barbell row", sets: 3, repMin: 8, repMax: 10, rest: 90 },
@@ -14,7 +14,7 @@ export const workoutTemplates = [
   {
     key: "lower_a",
     name: "Lower A",
-    description: "Squat focus · 5 exercises · ~45 min",
+    description: "Squat focus · 5 exercises",
     exercises: [
       { key: "back_squat", name: "Back squat", sets: 3, repMin: 5, repMax: 7, rest: 150 },
       { key: "romanian_deadlift", name: "Romanian deadlift", sets: 3, repMin: 8, repMax: 10, rest: 120 },
@@ -26,7 +26,7 @@ export const workoutTemplates = [
   {
     key: "upper_b",
     name: "Upper B",
-    description: "Shoulders and back · ~45 min",
+    description: "Shoulders and back",
     exercises: [
       { key: "incline_db_press", name: "Incline dumbbell press", sets: 3, repMin: 8, repMax: 10, rest: 90 },
       { key: "lat_pulldown", name: "Lat pulldown", sets: 3, repMin: 8, repMax: 10, rest: 90 },
@@ -38,7 +38,7 @@ export const workoutTemplates = [
   {
     key: "lower_b",
     name: "Lower B",
-    description: "Hinge focus · ~45 min",
+    description: "Hinge focus",
     exercises: [
       { key: "deadlift", name: "Deadlift", sets: 3, repMin: 4, repMax: 6, rest: 180 },
       { key: "front_squat", name: "Front squat", sets: 3, repMin: 6, repMax: 8, rest: 120 },

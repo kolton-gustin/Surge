@@ -53,6 +53,8 @@ export async function loadWorkoutData() {
   const sessions = sessionResult.data || [];
   const activeRow = sessions.find((session) => !session.completed_at) || null;
   const completed = sessions.filter((session) => session.completed_at);
+  const today = new Date().toDateString();
+  const completedToday = completed.some((session) => new Date(session.completed_at).toDateString() === today);
   const measurements = measurementResult.data || [];
   const currentWeekCount = completed.filter((session) => session.completed_at >= isoWeekStart()).length;
 
@@ -102,10 +104,7 @@ export async function loadWorkoutData() {
     goals,
     bodyMeasurements: measurements,
     workoutsThisWeek: currentWeekCount,
-    completedDays: [...new Set(completed.filter((session) => session.completed_at >= isoWeekStart()).map((session) => {
-      const weekday = new Date(session.completed_at).getDay();
-      return ({ 1: "M", 2: "T", 4: "Th", 5: "F" })[weekday];
-    }).filter(Boolean))],
+    completedToday,
     activeSession: activeRow ? {
       id: activeRow.id,
       templateKey: activeRow.template_key,
