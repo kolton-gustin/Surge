@@ -23,7 +23,7 @@ function AuthGate({ onSubmit, error, busy }) {
       <Header title="Enter passcode" />
       <form className="card auth-card" onSubmit={handleSubmit}>
         {!configured && <p className="form-error">Set VITE_PASSCODE in your environment to enable the passcode gate.</p>}
-        <label className="field">Passcode<input type="password" inputMode="numeric" autoComplete="current-password" value={passcode} onChange={(event) => { setPasscode(event.target.value); setLocalError(""); }} autoFocus required /></label>
+        <label className="field">Passcode<input type="password" inputMode="numeric" autoComplete="current-password" value={passcode} onChange={(event) => { setPasscode(event.target.value); setLocalError(""); }} required /></label>
         {(localError || error) && <p className="form-error" role="alert">{localError || error}</p>}
         <button className="button full" disabled={busy || !configured}>{busy ? "Checking…" : "Unlock"}</button>
       </form>
