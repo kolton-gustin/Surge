@@ -1,0 +1,257 @@
+.goals-page .page-header {
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.goals-new-button {
+  min-height: 38px;
+  white-space: nowrap;
+}
+
+.goals-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--ink);
+  color: #fff;
+}
+
+.goals-summary > div {
+  display: grid;
+  gap: 5px;
+}
+
+.goals-summary > div + div {
+  padding-left: 16px;
+  border-left: 1px solid #555954;
+}
+
+.goals-summary span {
+  color: #c1c4bf;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.goals-summary strong {
+  font: 500 30px/1 var(--serif);
+}
+
+.goals-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.goals-tabs button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font: 700 13px "DM Sans", sans-serif;
+  cursor: pointer;
+}
+
+.goals-tabs button.active {
+  background: var(--red);
+  color: #fff;
+}
+
+.goals-tabs button:focus-visible,
+.goals-card-actions button:focus-visible,
+.goals-new-button:focus-visible,
+.goals-empty .button:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 3px;
+}
+
+.goals-page .goals-card,
+.goals-page .goals-empty {
+  margin-bottom: 12px;
+  padding: 18px;
+  border-radius: 18px;
+}
+
+.goals-card-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.goals-type {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--red);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.goals-card-top h2 {
+  margin: 0;
+  color: var(--ink);
+  font: 500 22px/1.1 var(--serif);
+  overflow-wrap: anywhere;
+}
+
+.goals-percent {
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: #f8f0ed;
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.goals-values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+
+.goals-values > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.goals-values > div + div {
+  padding-left: 16px;
+  border-left: 1px solid var(--line);
+}
+
+.goals-values span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.goals-values strong {
+  color: var(--ink);
+  font: 500 clamp(20px, 6vw, 27px)/1.1 var(--serif);
+  overflow-wrap: anywhere;
+}
+
+.goals-track {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 7px;
+  background: #f2e7e4;
+}
+
+.goals-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--red);
+  transition: width .25s ease;
+}
+
+.goals-card-footer {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+  margin-top: 11px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.goals-card-footer strong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.goals-card.reached .goals-card-footer strong {
+  color: var(--red);
+}
+
+.goals-card-footer > span {
+  color: var(--muted);
+}
+
+.goals-card-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #eeefeb;
+}
+
+.goals-card-actions button {
+  min-height: 34px;
+  padding: 5px 0 5px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: 600 11px "DM Sans", sans-serif;
+  cursor: pointer;
+}
+
+.goals-card-actions button:hover {
+  color: var(--red);
+}
+
+.goals-card-actions button:disabled {
+  opacity: .5;
+  cursor: wait;
+}
+
+.goals-empty {
+  display: grid;
+  justify-items: center;
+  padding: 28px 18px !important;
+  text-align: center;
+}
+
+.goals-empty svg {
+  width: 48px;
+  height: 48px;
+  fill: none;
+  stroke: var(--red);
+  stroke-width: 2;
+}
+
+.goals-empty h2 {
+  margin: 14px 0 4px;
+  font: 500 24px/1.1 var(--serif);
+}
+
+.goals-empty p {
+  max-width: 260px;
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.goals-empty p:last-child {
+  margin-bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .goals-track span {
+    transition: none;
+  }
+}
+
+.goals-card-actions .goals-delete-button {
+  color: var(--red);
+}

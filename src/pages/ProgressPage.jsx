@@ -1,42 +1,169 @@
+import { workoutTemplates } from "../data/workouts.js";
 import Header from "../components/Header.jsx";
+import "./ProgressPage.css";
 
-function ProgressPage({ state, setState, onChange }) {
-  const body = state.progressMode === "Body";
-  const chartValues = body
-    ? state.bodyMeasurements.slice(0, 8).reverse().map((item) => Number(item.weight_kg) * 2.2046226)
-    : state.sessions.slice(0, 8).reverse().map((item) => {
-      const [weight, reps] = String(item.lift).split("×").map(Number);
-      return Number.isFinite(weight) && Number.isFinite(reps) && reps > 0 ? weight * (1 + reps / 30) : null;
-    }).filter((value) => value != null);
-  const minValue = chartValues.length ? Math.min(...chartValues) : 0;
-  const maxValue = chartValues.length ? Math.max(...chartValues) : 0;
-  const chartPoints = chartValues.map((value, index) => {
-    const x = chartValues.length < 2 ? 160 : 4 + index * (308 / (chartValues.length - 1));
-    const y = maxValue === minValue ? 62 : 18 + ((maxValue - value) / (maxValue - minValue)) * 88;
-    return `${x},${y}`;
-  }).join(" ");
+const exerciseOptions = workoutTemplates.flatMap((template) => template.exercises)
+  .filter((exercise, index, all) => all.findIndex((item) => item.key === exercise.key) === index);
+const kilogramsToPounds = 2.2046226218;
+const formatWeight = (value) => Number(value).toLocaleString("en", { maximumFractionDigits: 1 });
+const formatDate = (value) => {
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(String(value)) ? `${value}T12:00:00` : value;
+  return new Date(date).toLocaleDateString("en", { month: "short", day: "numeric" });
+};
+
+function TrendChart({ entries, label, emptyMessage }) {
+  const recent = entries.slice(0, 8).reverse();
+  if (!recent.length) return <p className="progress-empty">{emptyMessage}</p>;
+
+  const values = recent.map((entry) => entry.value);
+  const low = Math.min(...values);
+  const high = Math.max(...values);
+  const padding = Math.max((high - low) * .15, 1);
+  const coordinates = recent.map((entry, index) => ({
+    x: recent.length === 1 ? 160 : 18 + index * (284 / (recent.length - 1)),
+    y: high === low ? 68 : 18 + ((high + padding - entry.value) / (high - low + padding * 2)) * 100,
+  }));
+  const line = coordinates.map((point) => `${point.x},${point.y}`).join(" ");
+  const area = coordinates.length > 1
+    ? `${coordinates[0].x},128 ${line} ${coordinates.at(-1).x},128`
+    : "";
+
   return (
     <>
-      <section className="page">
-        <Header eyebrow="Strength" title="Progress" />
-        <div className="segmented">
-          {["Lifts", "Body"].map((mode) => <button key={mode} className={`segment ${state.progressMode === mode ? "active" : ""}`} onClick={() => setState((current) => ({ ...current, progressMode: mode }))}>{mode}</button>)}
-        </div>
-        <div className="lift-heading"><h2>{body ? "Body weight" : "Back squat"}</h2><button className="text-button" onClick={onChange}>Change</button></div>
-        <div className="stat-grid">
-          <article className="card"><div className="stat-label">{body ? "Current weight" : "Est. 1RM"}</div><div className="stat-value">{body ? `${state.bodyMeasurements[0] ? Math.round(Number(state.bodyMeasurements[0].weight_kg) * 2.2046226) : "—"} lb` : `${state.goals.find((goal) => goal.type === "estimated_1rm")?.current ?? "—"} lb`}</div><div className="subtle accent-subtle">{body ? "Latest measurement" : "From your logged sets"}</div></article>
-          <article className="card"><div className="stat-label">Best set</div><div className="stat-value">{state.sessions[0]?.lift || "—"}</div><div className="subtle">{state.sessions[0]?.date || "No sessions yet"}</div></article>
-        </div>
-        <article className="card chart-card">
-          <p className="chart-title">{body ? "Body weight" : "Est. 1RM"} · last 8 weeks</p>
-          {chartValues.length ? <svg className="chart" viewBox="0 0 320 125" role="img" aria-label={`${body ? "Body weight" : "Estimated one rep max"} history`}><path d="M4 18H316 M4 62H316 M4 106H316" stroke="#e6e7e2" />{chartValues.length > 1 && <polyline points={chartPoints} fill="none" stroke="#9e2921" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}<circle cx={chartValues.length < 2 ? 160 : 312} cy={chartValues.length < 2 ? 62 : Number(chartPoints.split(" ").at(-1)?.split(",")[1] || 62)} r="5" fill="#9e2921" /></svg> : <div className="chart-empty">{body ? "Log a few weigh-ins to see your trend." : "Complete workouts to build your lift history."}</div>}
-          <div className="goal-meta"><span>{state.sessions.at(-1)?.date || "First workout"}</span><span>{state.sessions[0]?.date || "Today"}</span></div>
-        </article>
-        <article className="card"><h2 className="section-title">Recent sessions</h2><div className="recent-list">
-          {state.sessions.slice(0, 3).map((session, index) => <div className="recent-row" key={`${session.date}-${index}`}><div><span className="recent-date">{session.date}</span>&nbsp;&nbsp;{session.name}</div><strong>{session.lift}</strong></div>)}
-        </div></article>
-      </section>
+      <svg className="progress-chart" viewBox="0 0 320 140" role="img" aria-label={`${label} from ${formatDate(recent[0].date)} to ${formatDate(recent.at(-1).date)}; latest ${formatWeight(recent.at(-1).value)} pounds`}>
+        <path className="progress-chart-grid" d="M18 20H302 M18 70H302 M18 120H302" />
+        {area && <polygon className="progress-chart-area" points={area} />}
+        {coordinates.length > 1 && <polyline className="progress-chart-line" points={line} />}
+        {coordinates.map((point, index) => (
+          <circle className="progress-chart-point" key={recent[index].id} cx={point.x} cy={point.y} r={index === coordinates.length - 1 ? 5 : 3.5} />
+        ))}
+      </svg>
+      <div className="progress-chart-dates">
+        <span>{formatDate(recent[0].date)}</span>
+        {recent.length > 1 && <span>{formatDate(recent.at(-1).date)}</span>}
+      </div>
     </>
+  );
+}
+
+function ProgressPage({ state, setState, onLogWeight }) {
+  const body = state.progressMode === "Body";
+  const strengthHistory = state.strengthHistory || [];
+  const selectedLiftKey = state.selectedLiftKey || strengthHistory[0]?.exerciseKey || exerciseOptions[0].key;
+  const selectedExercise = exerciseOptions.find((exercise) => exercise.key === selectedLiftKey);
+  const selectedLiftHistory = strengthHistory.filter((entry) => entry.exerciseKey === selectedLiftKey);
+  const latestLift = selectedLiftHistory[0];
+  const bestLift = selectedLiftHistory.reduce((best, entry) =>
+    !best || entry.weightKg > best.weightKg ? entry : best, null);
+  const weighIns = state.bodyMeasurements
+    .filter((item) => Number(item.weight_kg) > 0)
+    .map((item) => ({
+      id: item.id,
+      date: item.measured_at,
+      value: Number(item.weight_kg) * kilogramsToPounds,
+    }));
+  const latestWeight = weighIns[0];
+  const previousWeight = weighIns[1];
+  const weightChange = latestWeight && previousWeight ? latestWeight.value - previousWeight.value : null;
+  const trendEntries = body
+    ? weighIns
+    : selectedLiftHistory.map((entry) => ({ id: entry.id, date: entry.completedAt, value: entry.weightLb }));
+
+  return (
+    <section className="page progress-page">
+      <Header eyebrow="Your trends" title="Progress" />
+
+      <div className="progress-tabs" role="group" aria-label="Progress view">
+        {[["Lifts", "Strength"], ["Body", "Body weight"]].map(([mode, label]) => (
+          <button
+            key={mode}
+            type="button"
+            aria-pressed={state.progressMode === mode}
+            className={`progress-tab${state.progressMode === mode ? " active" : ""}`}
+            onClick={() => setState((current) => ({ ...current, progressMode: mode }))}
+          >{label}</button>
+        ))}
+      </div>
+
+      <article className="card progress-card">
+        <div className="progress-card-header">
+          <h2>{body ? "Body weight" : "Strength"}</h2>
+          {body && <button type="button" className="progress-log-button" onClick={onLogWeight}>+ Log weight</button>}
+        </div>
+
+        {!body && (
+          <label className="progress-lift-field">
+            <span className="progress-lift-label">Exercise</span>
+            <span className="progress-select-wrap">
+              <select value={selectedLiftKey} onChange={(event) => setState((current) => ({ ...current, selectedLiftKey: event.target.value }))}>
+                {exerciseOptions.map((exercise) => <option key={exercise.key} value={exercise.key}>{exercise.name}</option>)}
+              </select>
+            </span>
+          </label>
+        )}
+
+        <div className="progress-metrics">
+          {body ? (
+            <>
+              <div className="progress-metric">
+                <span>Latest weight</span>
+                <strong>{latestWeight ? `${formatWeight(latestWeight.value)} lb` : "—"}</strong>
+                <small>{latestWeight ? formatDate(latestWeight.date) : "No weigh-ins yet"}</small>
+              </div>
+              <div className="progress-metric">
+                <span>Since last weigh-in</span>
+                <strong>{weightChange == null ? "—" : `${weightChange > 0 ? "+" : weightChange < 0 ? "−" : ""}${formatWeight(Math.abs(weightChange))} lb`}</strong>
+                <small>{previousWeight ? `Previous: ${formatWeight(previousWeight.value)} lb` : "Log another to compare"}</small>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="progress-metric">
+                <span>Current best</span>
+                <strong>{bestLift ? `${formatWeight(bestLift.weightLb)} lb` : "—"}</strong>
+                <small>{bestLift ? `${bestLift.reps} reps · ${formatDate(bestLift.completedAt)}` : "No logged sets yet"}</small>
+              </div>
+              <div className="progress-metric">
+                <span>Last workout</span>
+                <strong>{latestLift ? `${formatWeight(latestLift.weightLb)} × ${latestLift.reps}` : "—"}</strong>
+                <small>{latestLift ? formatDate(latestLift.completedAt) : "Finish a workout to start"}</small>
+              </div>
+            </>
+          )}
+        </div>
+        {!body && <p className="progress-note">Current best is the heaviest completed set you have logged for this exercise.</p>}
+      </article>
+
+      <article className="card progress-card">
+        <div className="progress-card-header">
+          <h2>Trend</h2>
+          <span>Last {Math.min(trendEntries.length, 8)} {body ? "weigh-ins" : "workouts"}</span>
+        </div>
+        <TrendChart
+          entries={trendEntries}
+          label={body ? "Body weight" : `${selectedExercise?.name || "Strength"} heaviest set`}
+          emptyMessage={body ? "Log a weigh-in to see your weight trend." : "Complete a workout with weight and reps for this exercise to see its trend."}
+        />
+      </article>
+
+      <article className="card progress-card">
+        <div className="progress-card-header">
+          <h2>{body ? "Recent weigh-ins" : "Recent sets"}</h2>
+        </div>
+        {(body ? weighIns : selectedLiftHistory).length ? (
+          <div className="progress-recent-list">
+            {(body ? weighIns : selectedLiftHistory).slice(0, 4).map((entry) => (
+              <div className="progress-recent-row" key={entry.id}>
+                <span>{formatDate(body ? entry.date : entry.completedAt)}</span>
+                <div>
+                  <strong>{body ? `${formatWeight(entry.value)} lb` : `${formatWeight(entry.weightLb)} lb × ${entry.reps}`}</strong>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : <p className="progress-empty">{body ? "No weigh-ins recorded yet." : "No completed sets for this exercise yet."}</p>}
+      </article>
+    </section>
   );
 }
 

@@ -1,0 +1,256 @@
+.progress-page .page-header {
+  margin-bottom: 20px;
+}
+
+.progress-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.progress-tab {
+  min-height: 42px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font: 700 13px "DM Sans", sans-serif;
+  cursor: pointer;
+}
+
+.progress-tab.active {
+  background: var(--red);
+  color: #fff;
+}
+
+.progress-tab:focus-visible,
+.progress-log-button:focus-visible,
+.progress-lift-field select:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 3px;
+}
+
+.progress-page .progress-card {
+  margin-bottom: 12px;
+  padding: 18px;
+  border-radius: 18px;
+}
+
+.progress-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.progress-card-header h2 {
+  margin: 0;
+  color: var(--ink);
+  font: 500 22px/1.1 var(--serif);
+}
+
+.progress-card-header > span {
+  flex: none;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.progress-log-button {
+  flex: none;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid var(--red);
+  border-radius: 9px;
+  background: #fff7f5;
+  color: var(--red);
+  font: 700 11px "DM Sans", sans-serif;
+  cursor: pointer;
+}
+
+.progress-lift-field {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 18px;
+}
+
+.progress-lift-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.progress-select-wrap {
+  position: relative;
+  display: block;
+}
+
+.progress-select-wrap::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+.progress-lift-field select {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 11px 48px 11px 14px;
+  appearance: none;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fafaf8;
+  color: var(--ink);
+  font: 600 14px "DM Sans", sans-serif;
+  cursor: pointer;
+}
+
+.progress-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.progress-metric {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-width: 0;
+}
+
+.progress-metric + .progress-metric {
+  padding-left: 16px;
+  border-left: 1px solid var(--line);
+}
+
+.progress-metric > span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.progress-metric strong {
+  color: var(--ink);
+  font: 500 clamp(19px, 6vw, 25px)/1.1 var(--serif);
+  overflow-wrap: anywhere;
+}
+
+.progress-metric small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.progress-note {
+  margin: 16px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.progress-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.progress-chart-grid {
+  fill: none;
+  stroke: #e8e8e3;
+  stroke-width: 1;
+}
+
+.progress-chart-area {
+  fill: #f7e8e4;
+}
+
+.progress-chart-line {
+  fill: none;
+  stroke: var(--red);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.progress-chart-point {
+  fill: #fff;
+  stroke: var(--red);
+  stroke-width: 2.5;
+}
+
+.progress-chart-dates {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.progress-empty {
+  display: grid;
+  place-items: center;
+  min-height: 100px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.progress-recent-list {
+  display: grid;
+}
+
+.progress-recent-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 9px 0;
+}
+
+.progress-recent-row + .progress-recent-row {
+  border-top: 1px solid #eeefeb;
+}
+
+.progress-recent-row > span {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.progress-recent-row > div {
+  display: grid;
+  gap: 2px;
+  text-align: right;
+}
+
+.progress-recent-row strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.progress-recent-row small {
+  color: var(--muted);
+  font-size: 11px;
+}

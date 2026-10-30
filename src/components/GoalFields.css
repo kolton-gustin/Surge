@@ -1,0 +1,29 @@
+.goal-select-wrap {
+  position: relative;
+  display: block;
+}
+
+.goal-select-wrap::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
+
+.goal-fields .goal-select-wrap select {
+  appearance: none;
+  padding-right: 44px;
+}
+
+.goal-fields-hint {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}

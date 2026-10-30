@@ -1,0 +1,96 @@
+.workout-celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  width: 100vw;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  overflow: hidden;
+  background: var(--red);
+  color: #fff;
+  overscroll-behavior: none;
+  touch-action: none;
+  animation: celebration-appear .2s ease-out both;
+}
+
+.celebration-confetti {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  --fall-distance: 120vh;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -16px;
+  left: var(--left);
+  width: var(--width);
+  height: var(--height);
+  border-radius: 2px;
+  background: var(--color);
+  opacity: 0;
+  will-change: transform;
+  animation: confetti-fall var(--duration) linear var(--delay) both;
+}
+
+.confetti-piece:nth-child(3n) {
+  border-radius: 50%;
+}
+
+.celebration-content {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  text-align: center;
+}
+
+.celebration-content svg {
+  width: 104px;
+  height: 104px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: celebration-pop .45s cubic-bezier(.2, .9, .25, 1.2) both;
+}
+
+
+.celebration-content p {
+  margin: 0;
+  font: 500 clamp(25px, 7vw, 32px) var(--serif);
+}
+
+@keyframes celebration-appear {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes celebration-pop {
+  from { opacity: 0; transform: scale(.65) rotate(-10deg); }
+  to { opacity: 1; transform: scale(1) rotate(0); }
+}
+
+@keyframes confetti-fall {
+  0% { opacity: 0; transform: translate3d(0, 0, 0) rotate(0); }
+  8% { opacity: 1; }
+  100% { opacity: .85; transform: translate3d(var(--drift), var(--fall-distance), 0) rotate(var(--spin)); }
+}
+
+@supports (height: 100dvh) {
+  .celebration-confetti { --fall-distance: 120dvh; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workout-celebration,
+  .celebration-content svg {
+    animation: none;
+  }
+  .confetti-piece { display: none; }
+}

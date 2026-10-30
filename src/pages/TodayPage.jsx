@@ -1,50 +1,69 @@
 import { workoutTemplates } from "../data/workouts.js";
 import Header from "../components/Header.jsx";
+import "./TodayPage.css";
 
 function TodayPage({ state, onStart, selectedTemplate, onSelectTemplate }) {
   const today = new Intl.DateTimeFormat("en", { weekday: "long", month: "short", day: "numeric" }).format(new Date());
-  const completedCount = Math.min(state.workoutsThisWeek, workoutTemplates.length);
-  const template = workoutTemplates.find((item) => item.key === selectedTemplate) || workoutTemplates[1];
+  const template = workoutTemplates.find((item) => item.key === selectedTemplate) || workoutTemplates[0];
+  const completedKeys = state.completedTemplateKeysThisWeek;
+  const selectedIsComplete = completedKeys.includes(template.key);
+  const selectedIsActive = state.activeSession?.templateKey === template.key;
+  const workoutStatus = selectedIsActive ? "In progress" : selectedIsComplete ? "Complete" : "Ready to start";
+
   return (
-    <>
-      <section className="page">
-        <Header eyebrow={today} title="Today" />
-        <article className="card">
-          <p className="card-label">UP NEXT</p>
-          <select className="template-select" aria-label="Choose workout" value={template.key} onChange={(event) => onSelectTemplate(event.target.value)}>
-            {workoutTemplates.map((item) => <option value={item.key} key={item.key}>{item.name}</option>)}
-          </select>
-          <p className="subtle">{template.description}</p>
-          <button className="button full" onClick={onStart}>{state.activeSession ? "Resume workout" : "Start workout"}</button>
-        </article>
-        <article className="card">
-          <h2 className="section-title">This week</h2>
-          <div className="week">
-            {workoutTemplates.map((sessionTemplate, index) => {
-              const isDone = index < completedCount;
-              const isSelected = template.key === sessionTemplate.key;
-              return (
-                <button
-                  className={`day session-slot ${isDone ? "done" : ""} ${isSelected ? "selected" : ""}`}
-                  key={sessionTemplate.key}
-                  onClick={() => onSelectTemplate(sessionTemplate.key)}
-                  aria-label={`Select Session ${index + 1}: ${sessionTemplate.name}`}
-                  aria-pressed={isSelected}
-                >
-                  <span className="day-dot">{isDone ? "✓" : index + 1}</span>
-                  <span className="session-number">Session {index + 1}</span>
-                  <span className="session-name">{sessionTemplate.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        </article>
-        <div className="stats">
-          <article className="stat"><div className="stat-label">Workouts</div><div className="stat-value">{state.workoutsThisWeek} / 4</div></article>
-          <article className="stat"><div className="stat-label">Workout status</div><div className="stat-value status-value">{state.activeSession ? "In progress" : state.completedToday ? "Complete" : "Ready to start"}</div></article>
+    <section className="page today-page">
+      <Header eyebrow={today} title="Today" />
+
+      <article className="card today-card">
+        <div className="today-card-header">
+          <h2>Your workouts</h2>
+          <span>{completedKeys.length} of {workoutTemplates.length} complete</span>
         </div>
-      </section>
-    </>
+        <div className="today-session-grid">
+          {workoutTemplates.map((sessionTemplate, index) => {
+            const isDone = completedKeys.includes(sessionTemplate.key);
+            const isSelected = template.key === sessionTemplate.key;
+            return (
+              <button
+                type="button"
+                className={`today-session-tile${isSelected ? " selected" : ""}${isDone ? " done" : ""}`}
+                key={sessionTemplate.key}
+                onClick={() => onSelectTemplate(sessionTemplate.key)}
+                aria-label={`Select Session ${index + 1}: ${sessionTemplate.name}${isDone ? ", completed this week" : ""}`}
+                aria-pressed={isSelected}
+              >
+                <span className="today-session-index" aria-hidden="true">{isDone ? "✓" : index + 1}</span>
+                <span className="today-session-copy">
+                  <span className="today-session-number">Session {index + 1}</span>
+                  <strong className="today-session-name">{sessionTemplate.name}</strong>
+                  <span className="today-session-description">{sessionTemplate.description}</span>
+                </span>
+                {isDone && <span className="today-session-status">Complete</span>}
+              </button>
+            );
+          })}
+        </div>
+        <button type="button" className="button full today-start" onClick={onStart}>
+          {state.activeSession ? "Resume workout" : "Start Workout"}
+        </button>
+      </article>
+
+      <article className="card today-card today-overview">
+        <div className="today-card-header">
+          <h2>Overview</h2>
+        </div>
+        <div className="today-overview-grid">
+          <div className="today-overview-item">
+            <span>Workouts this week</span>
+            <strong>{state.workoutsThisWeek} <small>/ {workoutTemplates.length}</small></strong>
+          </div>
+          <div className="today-overview-item">
+            <span>Selected workout</span>
+            <strong className="today-overview-status">{workoutStatus}</strong>
+          </div>
+        </div>
+      </article>
+    </section>
   );
 }
 
