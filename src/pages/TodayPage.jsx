@@ -1,10 +1,9 @@
-import { workoutTemplates } from "../data/workouts.js";
 import Header from "../components/Header.jsx";
 import "./TodayPage.css";
 
-function TodayPage({ state, onStart, selectedTemplate, onSelectTemplate }) {
+function TodayPage({ state, templates, onStart, selectedTemplate, onSelectTemplate, onEditWorkouts }) {
   const today = new Intl.DateTimeFormat("en", { weekday: "long", month: "short", day: "numeric" }).format(new Date());
-  const template = workoutTemplates.find((item) => item.key === selectedTemplate) || workoutTemplates[0];
+  const template = templates.find((item) => item.key === selectedTemplate) || templates[0];
   const completedKeys = state.completedTemplateKeysThisWeek;
   const selectedIsComplete = completedKeys.includes(template.key);
   const selectedIsActive = state.activeSession?.templateKey === template.key;
@@ -12,15 +11,15 @@ function TodayPage({ state, onStart, selectedTemplate, onSelectTemplate }) {
 
   return (
     <section className="page today-page">
-      <Header eyebrow={today} title="Today" />
+      <Header eyebrow={today} title="Today" action={<button type="button" className="today-edit-workouts" onClick={onEditWorkouts}>Edit</button>} />
 
       <article className="card today-card">
         <div className="today-card-header">
           <h2>Your workouts</h2>
-          <span>{completedKeys.length} of {workoutTemplates.length} complete</span>
+          <span>{completedKeys.length} of {templates.length} complete</span>
         </div>
         <div className="today-session-grid">
-          {workoutTemplates.map((sessionTemplate, index) => {
+          {templates.map((sessionTemplate, index) => {
             const isDone = completedKeys.includes(sessionTemplate.key);
             const isSelected = template.key === sessionTemplate.key;
             return (
@@ -55,7 +54,7 @@ function TodayPage({ state, onStart, selectedTemplate, onSelectTemplate }) {
         <div className="today-overview-grid">
           <div className="today-overview-item">
             <span>Workouts this week</span>
-            <strong>{state.workoutsThisWeek} <small>/ {workoutTemplates.length}</small></strong>
+            <strong>{state.workoutsThisWeek} <small>/ {templates.length}</small></strong>
           </div>
           <div className="today-overview-item">
             <span>Selected workout</span>

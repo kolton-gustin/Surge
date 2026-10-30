@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { supabaseConfigured } from "./lib/supabaseClient.js";
 import { workoutTemplates } from "./data/workouts.js";
-import { addWorkoutSet, createGoal, deleteGoal, finishWorkout as finishWorkoutRecord, loadWorkoutData, recordBodyWeight, removeWorkoutSet, saveSet, setGoalCompleted, startWorkout } from "./lib/workoutsApi.js";
+import { addWorkoutSet, createGoal, deleteGoal, deleteWorkoutTemplate, finishWorkout as finishWorkoutRecord, loadWorkoutData, loadWorkoutTemplates, recordBodyWeight, removeWorkoutSet, saveSet, saveWorkoutTemplate, setGoalCompleted, startWorkout } from "./lib/workoutsApi.js";
 import AuthGate from "./components/AuthGate.jsx";
 import BottomNav from "./components/BottomNav.jsx";
 import Modal from "./components/Modal.jsx";
 import GoalFields from "./components/GoalFields.jsx";
 import WorkoutCelebration from "./components/WorkoutCelebration.jsx";
+import WorkoutLibrary from "./components/WorkoutLibrary.jsx";
 import GoalsPage from "./pages/GoalsPage.jsx";
 import ProgressPage from "./pages/ProgressPage.jsx";
 import TodayPage from "./pages/TodayPage.jsx";
@@ -46,9 +47,10 @@ export default function App() {
   const [celebrating, setCelebrating] = useState(false);
   const [error, setError] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState(workoutTemplates[0].key);
+  const [templates, setTemplates] = useState(workoutTemplates);
 
-  const refresh = async () => {
-    const data = await loadWorkoutData();
+  const refresh = async (currentTemplates = templates) => {
+    const data = await loadWorkoutData(currentTemplates);
     setState((current) => ({ ...initialState, ...data, progressMode: current.progressMode, selectedLiftKey: current.selectedLiftKey, activeExerciseIndex: Math.min(current.activeExerciseIndex || 0, Math.max(0, (data.activeSession?.exercises.length || 1) - 1)) }));
     return data;
   };
@@ -62,8 +64,11 @@ export default function App() {
     }
     let alive = true;
     setDataLoading(true);
-    loadWorkoutData().then((data) => {
+    Promise.all([loadWorkoutTemplates(),]).then(async ([loadedTemplates]) => {
+      if (!loadedTemplates.length) throw new Error("No workouts are configured. Add a workout in the library.");
+      const data = await loadWorkoutData(loadedTemplates);
       if (!alive) return;
+      setTemplates(loadedTemplates);
       setState((current) => ({ ...initialState, ...data, progressMode: current.progressMode, selectedLiftKey: current.selectedLiftKey, activeExerciseIndex: 0 }));
       setSelectedTemplate(data.nextTemplateKey);
       if (data.activeSession) setPage("workout");
@@ -92,7 +97,10 @@ export default function App() {
   };
 
   const beginWorkout = () => runAction(async () => {
-    if (!state.activeSession) await startWorkout(selectedTemplate);
+    if (!state.activeSession) {
+      const template = templates.find((item) => item.key === selectedTemplate) || templates[0];
+      await startWorkout(template);
+    }
     await refresh();
     setPage("workout");
   });
@@ -159,6 +167,24 @@ export default function App() {
     await runAction(async () => { await recordBodyWeight(value); await refresh(); setModal(null); });
   };
 
+  const saveTemplate = (template) => runAction(async () => {
+    const savedTemplate = await saveWorkoutTemplate(template, templates);
+    const nextTemplates = await loadWorkoutTemplates();
+    setTemplates(nextTemplates);
+    setSelectedTemplate(savedTemplate.key);
+    await refresh(nextTemplates);
+    setModal(null);
+  });
+
+  const removeTemplate = (template) => runAction(async () => {
+    await deleteWorkoutTemplate(template.id, templates.length);
+    const nextTemplates = await loadWorkoutTemplates();
+    setTemplates(nextTemplates);
+    setSelectedTemplate((current) => current === template.key ? nextTemplates[0].key : current);
+    await refresh(nextTemplates);
+    setModal(null);
+  });
+
   if (!pinUnlocked) return <main className="app-shell"><AuthGate onSubmit={unlockApp} error={error} busy={busy} /></main>;
   if (!supabaseConfigured) return <main className="app-shell"><section className="page"><p className="form-error" role="alert">{error || "Supabase is not configured."}</p></section></main>;
   if (dataLoading) return <main className="app-shell"><section className="page"><p className="subtle">Loading your workouts…</p></section></main>;
@@ -166,14 +192,15 @@ export default function App() {
   return (
     <main className="app-shell">
       {error && <div className="global-error" role="alert">{error}<button onClick={() => setError("")} aria-label="Dismiss">×</button></div>}
-      {page === "today" && <TodayPage state={state} onStart={beginWorkout} selectedTemplate={selectedTemplate} onSelectTemplate={setSelectedTemplate} />}
+      {page === "today" && <TodayPage state={state} templates={templates} onStart={beginWorkout} selectedTemplate={selectedTemplate} onSelectTemplate={setSelectedTemplate} onEditWorkouts={() => setModal("workouts")} />}
       {page === "workout" && <WorkoutPage state={state} setState={setState} onFinish={handleFinish} onSaveSet={handleSaveSet} onAddSet={handleAddSet} onRemoveSet={handleRemoveSet} busy={busy} />}
-      {page === "progress" && <ProgressPage state={state} setState={setState} onLogWeight={() => setModal("progress")} />}
+      {page === "progress" && <ProgressPage state={state} templates={templates} setState={setState} onLogWeight={() => setModal("progress")} />}
       {page === "goals" && <GoalsPage state={state} onNewGoal={() => setModal("goal")} onComplete={(goalId) => changeGoalCompleted(goalId, true)} onReopen={(goalId) => changeGoalCompleted(goalId, false)} onDelete={(goal) => { setGoalToDelete(goal); setModal("delete-goal"); }} busy={busy} />}
       {page !== "workout" && <BottomNav page={page} onNavigate={setPage} />}
       {modal === "goal" && <Modal title="New goal" onClose={() => setModal(null)} onSubmit={submitGoal}>
-        <GoalFields state={state} />
+        <GoalFields state={state} templates={templates} />
       </Modal>}
+      {modal === "workouts" && <WorkoutLibrary templates={templates} onSave={saveTemplate} onDelete={removeTemplate} onClose={() => setModal(null)} busy={busy} />}
       {modal === "delete-goal" && goalToDelete && <Modal title="Delete goal?" onClose={() => { setModal(null); setGoalToDelete(null); }} onSubmit={submitDeleteGoal} submitLabel="Delete goal" busy={busy}>
         <p className="subtle">Delete “{goalToDelete.name}” permanently? This cannot be undone.</p>
       </Modal>}

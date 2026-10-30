@@ -2,6 +2,8 @@
   margin-bottom: 20px;
 }
 
+.today-edit-workouts{border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--red);padding:8px 11px;font:700 12px "DM Sans",sans-serif;cursor:pointer}
+
 .today-page .today-card {
   margin-bottom: 12px;
   padding: 18px;

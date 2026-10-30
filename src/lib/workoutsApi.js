@@ -1,4 +1,4 @@
-import { kgToPounds, poundsToKg, templateByKey, workoutTemplates } from "../data/workouts.js";
+import { kgToPounds, poundsToKg } from "../data/workouts.js";
 import { supabase } from "./supabaseClient.js";
 import { buildStrengthHistory } from "./progress.js";
 
@@ -44,7 +44,24 @@ function mapExercise(row, previousWeights = {}) {
   };
 }
 
-export async function loadWorkoutData() {
+export async function loadWorkoutTemplates() {
+  const { data, error } = await supabase.from("workout_templates")
+    .select("id, template_key, name, description, position, workout_template_exercises (id, exercise_key, exercise_name, position, target_sets, target_rep_min, target_rep_max, rest_seconds)")
+    .order("position");
+  if (error) throw error;
+  return (data || []).map((template) => ({
+    id: template.id,
+    key: template.template_key,
+    name: template.name,
+    description: template.description || "",
+    exercises: [...(template.workout_template_exercises || [])].sort((a, b) => a.position - b.position).map((exercise) => ({
+      id: exercise.id, key: exercise.exercise_key, name: exercise.exercise_name,
+      sets: exercise.target_sets, repMin: exercise.target_rep_min, repMax: exercise.target_rep_max, rest: exercise.rest_seconds,
+    })),
+  }));
+}
+
+export async function loadWorkoutData(workoutTemplates) {
   const [sessionResult, goalResult, measurementResult] = await Promise.all([
     supabase.from("workout_sessions").select(SESSION_SELECT).order("started_at", { ascending: false }),
     supabase.from("goals").select("id, goal_type, name, exercise_key, baseline_value, target_value, target_date, created_at, archived_at").order("created_at"),
@@ -130,7 +147,7 @@ export async function loadWorkoutData() {
     return {
       id: session.id,
       date: new Date(session.completed_at).toLocaleDateString("en", { month: "short", day: "numeric" }),
-      name: templateByKey[session.template_key]?.name || session.name,
+      name: workoutTemplates.find((template) => template.key === session.template_key)?.name || session.name,
       lift: best ? `${kgToPounds(best.weight_kg)} × ${best.reps}` : "Workout complete",
     };
   });
@@ -147,7 +164,7 @@ export async function loadWorkoutData() {
     activeSession: activeRow ? {
       id: activeRow.id,
       templateKey: activeRow.template_key,
-      name: templateByKey[activeRow.template_key]?.name || activeRow.name,
+      name: workoutTemplates.find((template) => template.key === activeRow.template_key)?.name || activeRow.name,
       startedAt: activeRow.started_at,
       restUntil: null,
       exercises: [...(activeRow.session_exercises || [])].sort((a, b) => a.position - b.position).map((row) => mapExercise(row, previousWeightsByExercise.get(row.exercise_key))),
@@ -155,8 +172,7 @@ export async function loadWorkoutData() {
   };
 }
 
-export async function startWorkout(templateKey) {
-  const template = templateByKey[templateKey];
+export async function startWorkout(template) {
   if (!template) throw new Error("That workout template could not be found.");
   const { data: session, error: sessionError } = await supabase.from("workout_sessions")
     .insert({ template_key: template.key, name: template.name })
@@ -188,6 +204,41 @@ export async function startWorkout(templateKey) {
     throw setsError;
   }
   return session.id;
+}
+
+function templateKey() {
+  return `workout_${crypto.randomUUID()}`;
+}
+
+export async function saveWorkoutTemplate(values, existingTemplates) {
+  const exercises = values.exercises.filter((exercise) => exercise.name.trim());
+  if (!values.name.trim()) throw new Error("Give this workout a name.");
+  if (!exercises.length) throw new Error("Add at least one exercise.");
+  const position = existingTemplates.findIndex((template) => template.id === values.id);
+  const row = { template_key: values.key || templateKey(), name: values.name.trim(), description: values.description.trim(), position: position < 0 ? existingTemplates.length : position };
+  let templateId = values.id;
+  if (templateId) {
+    const { error } = await supabase.from("workout_templates").update(row).eq("id", templateId);
+    if (error) throw error;
+    const { error: deleteError } = await supabase.from("workout_template_exercises").delete().eq("template_id", templateId);
+    if (deleteError) throw deleteError;
+  } else {
+    const { data, error } = await supabase.from("workout_templates").insert(row).select("id").single();
+    if (error) throw error;
+    templateId = data.id;
+  }
+  const { error } = await supabase.from("workout_template_exercises").insert(exercises.map((exercise, index) => ({
+    template_id: templateId, exercise_key: exercise.key || exercise.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, ""),
+    exercise_name: exercise.name.trim(), position: index, target_sets: Number(exercise.sets), target_rep_min: Number(exercise.repMin), target_rep_max: Number(exercise.repMax), rest_seconds: Number(exercise.rest),
+  })));
+  if (error) throw error;
+  return { id: templateId, key: row.template_key };
+}
+
+export async function deleteWorkoutTemplate(templateId, templateCount) {
+  if (templateCount <= 1) throw new Error("Keep at least one workout in your library.");
+  const { error } = await supabase.from("workout_templates").delete().eq("id", templateId);
+  if (error) throw error;
 }
 
 const pendingSetSaves = new Map();

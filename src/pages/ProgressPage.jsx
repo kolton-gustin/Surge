@@ -1,8 +1,7 @@
-import { workoutTemplates } from "../data/workouts.js";
 import Header from "../components/Header.jsx";
 import "./ProgressPage.css";
 
-const exerciseOptions = workoutTemplates.flatMap((template) => template.exercises)
+const getExerciseOptions = (templates) => templates.flatMap((template) => template.exercises)
   .filter((exercise, index, all) => all.findIndex((item) => item.key === exercise.key) === index);
 const kilogramsToPounds = 2.2046226218;
 const formatWeight = (value) => Number(value).toLocaleString("en", { maximumFractionDigits: 1 });
@@ -46,7 +45,8 @@ function TrendChart({ entries, label, emptyMessage }) {
   );
 }
 
-function ProgressPage({ state, setState, onLogWeight }) {
+function ProgressPage({ state, templates, setState, onLogWeight }) {
+  const exerciseOptions = getExerciseOptions(templates);
   const body = state.progressMode === "Body";
   const strengthHistory = state.strengthHistory || [];
   const selectedLiftKey = state.selectedLiftKey || strengthHistory[0]?.exerciseKey || exerciseOptions[0].key;

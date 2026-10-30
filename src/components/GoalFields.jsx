@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { workoutTemplates } from "../data/workouts.js";
 import "./GoalFields.css";
 
-const exercises = workoutTemplates.flatMap((template) => template.exercises)
+const getExercises = (templates) => templates.flatMap((template) => template.exercises)
   .filter((exercise, index, all) => all.findIndex((item) => item.key === exercise.key) === index);
 
 function suggestedStart(type, exerciseKey, state) {
@@ -17,7 +16,8 @@ function suggestedStart(type, exerciseKey, state) {
   return best > 0 ? String(best) : "";
 }
 
-function GoalFields({ state }) {
+function GoalFields({ state, templates }) {
+  const exercises = getExercises(templates);
   const [type, setType] = useState("estimated_1rm");
   const [exerciseKey, setExerciseKey] = useState(state.strengthHistory[0]?.exerciseKey || exercises[0].key);
   const [start, setStart] = useState(() => suggestedStart("estimated_1rm", exerciseKey, state));
