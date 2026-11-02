@@ -6,7 +6,7 @@ const SESSION_SELECT = `
   id, template_key, name, started_at, completed_at, notes,
   session_exercises (
     id, session_id, exercise_key, exercise_name, position,
-    target_sets, target_rep_min, target_rep_max, rest_seconds,
+    target_sets, target_rep_min, target_rep_max, rest_seconds, superset_group,
     workout_sets (id, session_exercise_id, set_number, reps, weight_kg, completed_at, notes)
   )
 `;
@@ -29,6 +29,7 @@ function mapExercise(row, previousWeights = {}) {
     repMin: row.target_rep_min,
     repMax: row.target_rep_max,
     restSeconds: row.rest_seconds,
+    supersetGroup: row.superset_group,
     previousWeights,
     sets: [...(row.workout_sets || [])]
       .sort((a, b) => a.set_number - b.set_number)
@@ -46,7 +47,7 @@ function mapExercise(row, previousWeights = {}) {
 
 export async function loadWorkoutTemplates() {
   const { data, error } = await supabase.from("workout_templates")
-    .select("id, template_key, name, description, position, workout_template_exercises (id, exercise_key, exercise_name, position, target_sets, target_rep_min, target_rep_max, rest_seconds)")
+    .select("id, template_key, name, description, position, workout_template_exercises (id, exercise_key, exercise_name, position, target_sets, target_rep_min, target_rep_max, rest_seconds, superset_group)")
     .order("position");
   if (error) throw error;
   return (data || []).map((template) => ({
@@ -56,7 +57,7 @@ export async function loadWorkoutTemplates() {
     description: template.description || "",
     exercises: [...(template.workout_template_exercises || [])].sort((a, b) => a.position - b.position).map((exercise) => ({
       id: exercise.id, key: exercise.exercise_key, name: exercise.exercise_name,
-      sets: exercise.target_sets, repMin: exercise.target_rep_min, repMax: exercise.target_rep_max, rest: exercise.rest_seconds,
+      sets: exercise.target_sets, repMin: exercise.target_rep_min, repMax: exercise.target_rep_max, rest: exercise.rest_seconds, supersetGroup: exercise.superset_group,
     })),
   }));
 }
@@ -188,7 +189,8 @@ export async function startWorkout(template) {
     target_rep_min: exercise.repMin,
     target_rep_max: exercise.repMax,
     rest_seconds: exercise.rest,
-  }))).select("id, exercise_key, exercise_name, position, target_sets, target_rep_min, target_rep_max, rest_seconds");
+    superset_group: exercise.supersetGroup || null,
+  }))).select("id, exercise_key, exercise_name, position, target_sets, target_rep_min, target_rep_max, rest_seconds, superset_group");
   if (exerciseError) {
     await supabase.from("workout_sessions").delete().eq("id", session.id);
     throw exerciseError;
@@ -229,7 +231,7 @@ export async function saveWorkoutTemplate(values, existingTemplates) {
   }
   const { error } = await supabase.from("workout_template_exercises").insert(exercises.map((exercise, index) => ({
     template_id: templateId, exercise_key: exercise.key || exercise.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, ""),
-    exercise_name: exercise.name.trim(), position: index, target_sets: Number(exercise.sets), target_rep_min: Number(exercise.repMin), target_rep_max: Number(exercise.repMax), rest_seconds: Number(exercise.rest),
+    exercise_name: exercise.name.trim(), position: index, target_sets: Number(exercise.sets), target_rep_min: Number(exercise.repMin), target_rep_max: Number(exercise.repMax), rest_seconds: Number(exercise.rest), superset_group: exercise.supersetGroup?.trim() || null,
   })));
   if (error) throw error;
   return { id: templateId, key: row.template_key };

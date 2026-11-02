@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "./WorkoutLibrary.css";
 
-const blankExercise = () => ({ key: "", name: "", sets: 3, repMin: 8, repMax: 12, rest: 90 });
+const blankExercise = () => ({ key: "", name: "", sets: 3, repMin: 8, repMax: 12, rest: 90, supersetGroup: "" });
 const blankWorkout = () => ({ name: "New workout", description: "", exercises: [blankExercise()] });
 
 function WorkoutEditor({ workout, onChange, onSave, onDelete, busy }) {
@@ -14,6 +14,7 @@ function WorkoutEditor({ workout, onChange, onSave, onDelete, busy }) {
       <input aria-label={`Exercise ${index + 1} name`} value={exercise.name} onChange={(event) => changeExercise(index, "name", event.target.value)} placeholder="Exercise name" required />
       <div className="library-numbers"><label>Sets<input type="number" min="1" value={exercise.sets} onChange={(event) => changeExercise(index, "sets", event.target.value)} /></label><label>Min reps<input type="number" min="1" value={exercise.repMin} onChange={(event) => changeExercise(index, "repMin", event.target.value)} /></label><label>Max reps<input type="number" min="1" value={exercise.repMax} onChange={(event) => changeExercise(index, "repMax", event.target.value)} /></label></div>
       <label className="library-rest">Rest (seconds)<input type="number" min="0" step="15" value={exercise.rest} onChange={(event) => changeExercise(index, "rest", event.target.value)} /></label>
+      <label className="library-rest">Superset group <span className="library-optional">(optional; use the same label on both exercises)</span><input value={exercise.supersetGroup || ""} onChange={(event) => changeExercise(index, "supersetGroup", event.target.value)} placeholder="e.g. A" /></label>
     </div>)}</div>
     <button type="button" className="library-add-exercise" onClick={() => onChange({ ...workout, exercises: [...workout.exercises, blankExercise()] })}>+ Add exercise</button>
     <div className="library-actions"><button type="button" className="button outline" disabled={busy || !workout.id} onClick={onDelete}>Delete</button><button type="button" className="button" disabled={busy} onClick={onSave}>Save workout</button></div>

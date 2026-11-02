@@ -419,6 +419,12 @@
   font-size: 22px;
 }
 
+.workout-page .superset-exercise + .superset-exercise {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
 @media (max-width: 360px) {
   .workout-page .set-head,
   .workout-page .set-row {

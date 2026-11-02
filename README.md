@@ -6,6 +6,8 @@ A React and Vite workout tracker using Supabase for workout sessions, progress, 
 
 Run [supabase-workout-library.sql](./supabase-workout-library.sql) once in the Supabase SQL Editor (after `supabase-anon-access.sql`). It creates the editable workout-template tables and seeds them with the original four routines. After that, use **Edit** on the Today screen to add, change, or delete workouts and configure their exercises, sets, rep range, and rest timer. Past completed workouts remain unchanged.
 
+Run [supabase-update-workout-plan.sql](./supabase-update-workout-plan.sql) afterward to apply the current four-workout plan and enable paired superset exercises.
+
 ## Run locally
 
 1. Copy `.env.example` to `.env.local` and fill in the three values.
