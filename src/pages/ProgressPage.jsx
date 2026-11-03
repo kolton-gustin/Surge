@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Header from "../components/Header.jsx";
 import "./ProgressPage.css";
 
@@ -45,9 +46,64 @@ function TrendChart({ entries, label, emptyMessage }) {
   );
 }
 
+function formatDuration(seconds) {
+  if (seconds == null) return "Duration unavailable";
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  return hours ? `${hours}h ${minutes}m` : `${minutes} min`;
+}
+
+function WorkoutLog({ workouts }) {
+  const [expandedId, setExpandedId] = useState(null);
+  if (!workouts.length) return (
+    <article className="card progress-card">
+      <p className="progress-empty">Finish a workout to see it in your log.</p>
+    </article>
+  );
+
+  return <div className="workout-log-list">
+    <div className="workout-log-column-headings" aria-hidden="true">
+      <span>Date</span><span>Template</span><span>Duration</span>
+    </div>
+    {workouts.map((workout) => {
+      const expanded = expandedId === workout.id;
+      const detailsId = `workout-log-${workout.id}`;
+      return <article className={`card progress-card workout-log-card${expanded ? " expanded" : ""}`} key={workout.id}>
+        <button
+          type="button"
+          className="workout-log-header"
+          onClick={() => setExpandedId((current) => current === workout.id ? null : workout.id)}
+          aria-expanded={expanded}
+          aria-controls={detailsId}
+        >
+          <span>{formatDate(workout.completedAt)}</span>
+          <strong>{workout.name}</strong>
+          <span className="workout-log-duration">{formatDuration(workout.durationSeconds)}</span>
+          <span className="workout-log-chevron" aria-hidden="true">⌄</span>
+        </button>
+        {expanded && <div className="workout-log-details" id={detailsId}>
+        {workout.exercises.length ? <div className="workout-log-exercises">
+          {workout.exercises.map((exercise) => (
+            <div className="workout-log-exercise" key={exercise.id}>
+              <strong>{exercise.name}</strong>
+              <div className="workout-log-sets" aria-label={`${exercise.name} completed sets`}>
+                {exercise.sets.map((set) => (
+                  <span key={set.id}>Set {set.number}: {set.weight || "—"} lb × {set.reps ?? "—"}</span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div> : <p className="progress-empty workout-log-empty">No completed sets were logged for this workout.</p>}
+        </div>}
+      </article>;
+    })}
+  </div>;
+}
+
 function ProgressPage({ state, templates, setState, onLogWeight }) {
   const exerciseOptions = getExerciseOptions(templates);
   const body = state.progressMode === "Body";
+  const log = state.progressMode === "Log";
   const strengthHistory = state.strengthHistory || [];
   const selectedLiftKey = state.selectedLiftKey || strengthHistory[0]?.exerciseKey || exerciseOptions[0].key;
   const selectedExercise = exerciseOptions.find((exercise) => exercise.key === selectedLiftKey);
@@ -74,7 +130,7 @@ function ProgressPage({ state, templates, setState, onLogWeight }) {
       <Header eyebrow="Your trends" title="Progress" />
 
       <div className="progress-tabs" role="group" aria-label="Progress view">
-        {[["Lifts", "Strength"], ["Body", "Body weight"]].map(([mode, label]) => (
+        {[["Log", "Workout log"], ["Lifts", "Strength"], ["Body", "Body weight"]].map(([mode, label]) => (
           <button
             key={mode}
             type="button"
@@ -84,6 +140,8 @@ function ProgressPage({ state, templates, setState, onLogWeight }) {
           >{label}</button>
         ))}
       </div>
+
+      {log ? <WorkoutLog workouts={state.workoutLog || []} /> : <>
 
       <article className="card progress-card">
         <div className="progress-card-header">
@@ -163,6 +221,7 @@ function ProgressPage({ state, templates, setState, onLogWeight }) {
           </div>
         ) : <p className="progress-empty">{body ? "No weigh-ins recorded yet." : "No completed sets for this exercise yet."}</p>}
       </article>
+      </>}
     </section>
   );
 }

@@ -4,7 +4,7 @@
 
 .progress-tabs {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
   margin-bottom: 16px;
   padding: 5px;
@@ -253,4 +253,128 @@
 .progress-recent-row small {
   color: var(--muted);
   font-size: 11px;
+}
+
+.workout-log-list {
+  display: grid;
+  gap: 8px;
+}
+
+.workout-log-column-headings,
+.workout-log-header {
+  display: grid;
+  grid-template-columns: minmax(72px, .8fr) minmax(0, 1.5fr) minmax(62px, .7fr) 16px;
+  align-items: center;
+  column-gap: 8px;
+}
+
+.workout-log-column-headings {
+  padding: 0 18px 2px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.workout-log-column-headings span:nth-child(3) {
+  text-align: right;
+}
+
+.workout-log-card {
+  margin-bottom: 0 !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.workout-log-header {
+  width: 100%;
+  min-height: 62px;
+  padding: 14px 18px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.workout-log-header > span:first-child {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.workout-log-header > strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink);
+  font: 600 14px/1.25 "DM Sans", sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workout-log-duration {
+  color: var(--red);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.workout-log-chevron {
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  transition: transform 160ms ease;
+}
+
+.workout-log-card.expanded .workout-log-chevron {
+  transform: rotate(180deg);
+}
+
+.workout-log-header:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: -4px;
+}
+
+.workout-log-details {
+  padding: 0 18px 18px;
+  border-top: 1px solid var(--line);
+}
+
+.workout-log-exercises {
+  display: grid;
+  gap: 14px;
+}
+
+.workout-log-exercise + .workout-log-exercise {
+  padding-top: 14px;
+  border-top: 1px solid #eeefeb;
+}
+
+.workout-log-exercise > strong {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.workout-log-sets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.workout-log-sets span {
+  padding: 5px 7px;
+  border-radius: 7px;
+  background: #f4f4f0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.workout-log-empty {
+  min-height: auto;
+  padding: 18px 0 0;
 }

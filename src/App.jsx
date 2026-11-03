@@ -22,6 +22,7 @@ const initialState = {
   workoutsThisWeek: 0,
   completedTemplateKeysThisWeek: [],
   bodyMeasurements: [],
+  workoutLog: [],
   activeSession: null,
   progressMode: "Lifts",
 };

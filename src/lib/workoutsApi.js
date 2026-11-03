@@ -148,13 +148,43 @@ export async function loadWorkoutData(workoutTemplates) {
     return {
       id: session.id,
       date: new Date(session.completed_at).toLocaleDateString("en", { month: "short", day: "numeric" }),
-      name: workoutTemplates.find((template) => template.key === session.template_key)?.name || session.name,
+      name: session.name || workoutTemplates.find((template) => template.key === session.template_key)?.name || "Workout",
       lift: best ? `${kgToPounds(best.weight_kg)} × ${best.reps}` : "Workout complete",
+    };
+  });
+
+  const workoutLog = completed.map((session) => {
+    const startedAt = Date.parse(session.started_at);
+    const completedAt = Date.parse(session.completed_at);
+    return {
+      id: session.id,
+      completedAt: session.completed_at,
+      name: session.name || workoutTemplates.find((template) => template.key === session.template_key)?.name || "Workout",
+      durationSeconds: Number.isFinite(startedAt) && Number.isFinite(completedAt)
+        ? Math.max(0, Math.round((completedAt - startedAt) / 1000))
+        : null,
+      exercises: [...(session.session_exercises || [])]
+        .sort((a, b) => a.position - b.position)
+        .map((exercise) => ({
+          id: exercise.id,
+          name: exercise.exercise_name,
+          sets: (exercise.workout_sets || [])
+            .filter((set) => set.completed_at)
+            .sort((a, b) => a.set_number - b.set_number)
+            .map((set) => ({
+              id: set.id,
+              number: set.set_number,
+              weight: kgToPounds(set.weight_kg),
+              reps: set.reps,
+            })),
+        }))
+        .filter((exercise) => exercise.sets.length),
     };
   });
 
   return {
     sessions: history,
+    workoutLog,
     strengthHistory,
     goals: mappedGoals.filter((goal) => !goal.completedAt),
     completedGoals: mappedGoals.filter((goal) => goal.completedAt),
