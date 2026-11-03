@@ -63,7 +63,7 @@ function WorkoutLog({ workouts }) {
 
   return <div className="workout-log-list">
     <div className="workout-log-column-headings" aria-hidden="true">
-      <span>Date</span><span>Template</span><span>Duration</span>
+      <span>Date</span><span>Workout</span><span>Duration</span>
     </div>
     {workouts.map((workout) => {
       const expanded = expandedId === workout.id;
@@ -189,7 +189,7 @@ function ProgressPage({ state, templates, setState, onLogWeight }) {
             </>
           )}
         </div>
-        {!body && <p className="progress-note">Current best is the heaviest completed set you have logged for this exercise.</p>}
+        {!body}
       </article>
 
       <article className="card progress-card">
