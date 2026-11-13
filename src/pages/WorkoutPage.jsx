@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Header from "../components/Header.jsx";
 import "./WorkoutPage.css";
 
@@ -9,10 +9,22 @@ function Sets({ exercise, change, toggle, add, remove, busy }) {
 
 function WorkoutPage({ state, setState, onFinish, onSaveSet, onAddSet, onRemoveSet, busy }) {
   const [, tick] = useState(0);
+  const pageRef = useRef(null);
   useEffect(() => { const timer = window.setInterval(() => tick((value) => value + 1), 1000); return () => window.clearInterval(timer); }, []);
   const session = state.activeSession;
   const index = state.activeExerciseIndex || 0;
   const current = session?.exercises?.[index];
+
+  // The exercise view is updated in place, which normally preserves the
+  // scrollTop from the prior exercise. Reset it before paint so a shorter next
+  // exercise cannot appear permanently shifted above the viewport.
+  useLayoutEffect(() => {
+    const resetScroll = () => pageRef.current?.scrollTo(0, 0);
+    resetScroll();
+    const frame = window.requestAnimationFrame(resetScroll);
+    return () => window.cancelAnimationFrame(frame);
+  }, [session?.id, index]);
+
   if (!session || !current) return <section className="page"><p className="subtle">No active workout. Start one from Today.</p></section>;
   const group = current.supersetGroup ? session.exercises.filter((item) => item.supersetGroup === current.supersetGroup) : [current];
   const groupEnd = Math.max(...group.map((item) => session.exercises.findIndex((exercise) => exercise.id === item.id)));
@@ -35,7 +47,7 @@ function WorkoutPage({ state, setState, onFinish, onSaveSet, onAddSet, onRemoveS
   const completed = session.exercises.filter((item) => item.sets.length && item.sets.every((set) => set.done)).length;
   const finished = completed === session.exercises.length;
   const next = session.exercises[groupEnd + 1];
-  return <section className="page workout-page"><Header eyebrow="Workout in progress" title={session.name} /><div className="workout-summary"><div className="workout-summary-row"><div className="workout-metric"><span>Elapsed</span><strong>{String(Math.floor(elapsed / 60)).padStart(2, "0")}:{String(elapsed % 60).padStart(2, "0")}</strong></div><div className="workout-metric workout-metric-right"><span>Exercises completed</span><strong>{completed}<small> / {session.exercises.length}</small></strong></div></div><div className="workout-progress-track"><span style={{ width: `${Math.round(completed / session.exercises.length * 100)}%` }} /></div></div><article className="card exercise-card"><div className="exercise-topline"><span className="exercise-step">{group.length > 1 ? `Superset · exercises ${index + 1}–${groupEnd + 1}` : `Exercise ${index + 1} of ${session.exercises.length}`}</span><span className="exercise-target">{current.targetSets} sets · {current.repMin}–{current.repMax} reps</span></div>{group.map((exercise) => <Sets key={exercise.id} exercise={exercise} change={change} toggle={toggle} add={onAddSet} remove={onRemoveSet} busy={busy} />)}</article><div className={`rest-card ${rest > 0 ? "running" : ""}`}><div className="rest-details"><span className="rest-label">Rest timer</span><strong className="rest-time">{Math.floor(rest / 60)}:{String(rest % 60).padStart(2, "0")}</strong><span className="rest-hint">{rest > 0 ? "Recover before your next set" : group.length > 1 ? "Starts after both superset exercises" : "Starts when you complete a set"}</span></div>{rest > 0 && <button type="button" className="rest-skip" onClick={() => setState((old) => ({ ...old, activeSession: { ...old.activeSession, restUntil: null } }))}>Skip</button>}</div>{finished ? <button type="button" className="finish-workout-cta" disabled={busy} onClick={onFinish}><span className="finish-cta-copy"><span className="finish-cta-label">All exercises complete</span><strong>Finish workout</strong></span><span className="finish-cta-arrow">→</span></button> : next ? <button type="button" className={`next-exercise-card ${completeGroup && !busy ? "ready" : ""}`} disabled={!completeGroup || busy} onClick={() => setState((old) => ({ ...old, activeExerciseIndex: groupEnd + 1 }))}><span className="next-card-copy"><span className="next-card-label">Next exercise</span><strong className="next-up">{next.name}</strong><span className="next-card-hint">{completeGroup ? "Continue workout" : "Complete all sets to continue"}</span></span><span className="next-card-arrow">→</span></button> : null}</section>;
+  return <section ref={pageRef} className="page workout-page"><Header eyebrow="Workout in progress" title={session.name} /><div className="workout-summary"><div className="workout-summary-row"><div className="workout-metric"><span>Elapsed</span><strong>{String(Math.floor(elapsed / 60)).padStart(2, "0")}:{String(elapsed % 60).padStart(2, "0")}</strong></div><div className="workout-metric workout-metric-right"><span>Exercises completed</span><strong>{completed}<small> / {session.exercises.length}</small></strong></div></div><div className="workout-progress-track"><span style={{ width: `${Math.round(completed / session.exercises.length * 100)}%` }} /></div></div><article className="card exercise-card"><div className="exercise-topline"><span className="exercise-step">{group.length > 1 ? `Superset · exercises ${index + 1}–${groupEnd + 1}` : `Exercise ${index + 1} of ${session.exercises.length}`}</span><span className="exercise-target">{current.targetSets} sets · {current.repMin}–{current.repMax} reps</span></div>{group.map((exercise) => <Sets key={exercise.id} exercise={exercise} change={change} toggle={toggle} add={onAddSet} remove={onRemoveSet} busy={busy} />)}</article><div className={`rest-card ${rest > 0 ? "running" : ""}`}><div className="rest-details"><span className="rest-label">Rest timer</span><strong className="rest-time">{Math.floor(rest / 60)}:{String(rest % 60).padStart(2, "0")}</strong><span className="rest-hint">{rest > 0 ? "Recover before your next set" : group.length > 1 ? "Starts after both superset exercises" : "Starts when you complete a set"}</span></div>{rest > 0 && <button type="button" className="rest-skip" onClick={() => setState((old) => ({ ...old, activeSession: { ...old.activeSession, restUntil: null } }))}>Skip</button>}</div>{finished ? <button type="button" className="finish-workout-cta" disabled={busy} onClick={onFinish}><span className="finish-cta-copy"><span className="finish-cta-label">All exercises complete</span><strong>Finish workout</strong></span><span className="finish-cta-arrow">→</span></button> : next ? <button type="button" className={`next-exercise-card ${completeGroup && !busy ? "ready" : ""}`} disabled={!completeGroup || busy} onClick={() => setState((old) => ({ ...old, activeExerciseIndex: groupEnd + 1 }))}><span className="next-card-copy"><span className="next-card-label">Next exercise</span><strong className="next-up">{next.name}</strong><span className="next-card-hint">{completeGroup ? "Continue workout" : "Complete all sets to continue"}</span></span><span className="next-card-arrow">→</span></button> : null}</section>;
 }
 
 export default WorkoutPage;

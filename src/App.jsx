@@ -90,6 +90,16 @@ export default function App() {
     setPinUnlocked(true);
   };
 
+  const navigate = (nextPage) => {
+    // A focused number field can leave Mobile Safari's nested scroller offset
+    // after switching tabs. Close its keyboard before replacing the page.
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    setPage(nextPage);
+    window.requestAnimationFrame(() => {
+      document.querySelector(".app-shell .page")?.scrollTo(0, 0);
+    });
+  };
+
   const runAction = async (action) => {
     setBusy(true); setError("");
     try { await action(); }
@@ -197,7 +207,7 @@ export default function App() {
       {page === "workout" && <WorkoutPage state={state} setState={setState} onFinish={handleFinish} onSaveSet={handleSaveSet} onAddSet={handleAddSet} onRemoveSet={handleRemoveSet} busy={busy} />}
       {page === "progress" && <ProgressPage state={state} templates={templates} setState={setState} onLogWeight={() => setModal("progress")} />}
       {page === "goals" && <GoalsPage state={state} onNewGoal={() => setModal("goal")} onComplete={(goalId) => changeGoalCompleted(goalId, true)} onReopen={(goalId) => changeGoalCompleted(goalId, false)} onDelete={(goal) => { setGoalToDelete(goal); setModal("delete-goal"); }} busy={busy} />}
-      {page !== "workout" && <BottomNav page={page} onNavigate={setPage} />}
+      {page !== "workout" && <BottomNav page={page} onNavigate={navigate} />}
       {modal === "goal" && <Modal title="New goal" onClose={() => setModal(null)} onSubmit={submitGoal}>
         <GoalFields state={state} templates={templates} />
       </Modal>}
