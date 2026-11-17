@@ -19,7 +19,7 @@ function suggestedStart(type, exerciseKey, state) {
 function GoalFields({ state, templates }) {
   const exercises = getExercises(templates);
   const [type, setType] = useState("estimated_1rm");
-  const [exerciseKey, setExerciseKey] = useState(state.strengthHistory[0]?.exerciseKey || exercises[0].key);
+  const [exerciseKey, setExerciseKey] = useState(state.strengthHistory[0]?.exerciseKey || exercises[0]?.key || "");
   const [start, setStart] = useState(() => suggestedStart("estimated_1rm", exerciseKey, state));
   const weekly = type === "weekly_workouts";
   const lift = type === "estimated_1rm";
@@ -44,7 +44,7 @@ function GoalFields({ state, templates }) {
         Goal name
         <input name="name" placeholder={lift ? "e.g. Bench press goal" : weekly ? "e.g. Four workouts a week" : "e.g. Target weight"} required />
       </label>
-      {lift && (
+      {lift && exercises.length > 0 && (
         <label className="field">
           Exercise
           <span className="goal-select-wrap">
@@ -57,6 +57,7 @@ function GoalFields({ state, templates }) {
           </span>
         </label>
       )}
+      {lift && !exercises.length && <p className="form-error">Create a workout exercise before adding a strength goal.</p>}
       {weekly ? <input type="hidden" name="start" value="0" /> : (
         <label className="field">
           {lift ? "Starting best set (lb)" : "Starting weight (lb)"}

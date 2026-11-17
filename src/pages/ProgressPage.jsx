@@ -53,6 +53,12 @@ function formatDuration(seconds) {
   return hours ? `${hours}h ${minutes}m` : `${minutes} min`;
 }
 
+function formatPace(seconds) {
+  if (!Number.isFinite(Number(seconds)) || Number(seconds) <= 0) return null;
+  const value = Math.round(Number(seconds));
+  return `${Math.floor(value / 60)}:${String(value % 60).padStart(2, "0")} /mi`;
+}
+
 function WorkoutLog({ workouts }) {
   const [expandedId, setExpandedId] = useState(null);
   if (!workouts.length) return (
@@ -82,7 +88,7 @@ function WorkoutLog({ workouts }) {
           <span className="workout-log-chevron" aria-hidden="true">⌄</span>
         </button>
         {expanded && <div className="workout-log-details" id={detailsId}>
-        {workout.exercises.length ? <div className="workout-log-exercises">
+        {workout.workoutType === "Run" ? <div className="workout-log-exercises"><div className="workout-log-exercise"><strong>Run result</strong><div className="workout-log-sets"><span>{workout.runDistanceMiles == null ? "Distance not logged" : `${workout.runDistanceMiles} mi`}</span>{formatPace(workout.runPaceSeconds) && <span>Average pace: {formatPace(workout.runPaceSeconds)}</span>}</div></div></div> : workout.exercises.length ? <div className="workout-log-exercises">
           {workout.exercises.map((exercise) => (
             <div className="workout-log-exercise" key={exercise.id}>
               <strong>{exercise.name}</strong>
@@ -105,7 +111,7 @@ function ProgressPage({ state, templates, setState, onLogWeight }) {
   const body = state.progressMode === "Body";
   const log = state.progressMode === "Log";
   const strengthHistory = state.strengthHistory || [];
-  const selectedLiftKey = state.selectedLiftKey || strengthHistory[0]?.exerciseKey || exerciseOptions[0].key;
+  const selectedLiftKey = state.selectedLiftKey || strengthHistory[0]?.exerciseKey || exerciseOptions[0]?.key || "";
   const selectedExercise = exerciseOptions.find((exercise) => exercise.key === selectedLiftKey);
   const selectedLiftHistory = strengthHistory.filter((entry) => entry.exerciseKey === selectedLiftKey);
   const latestLift = selectedLiftHistory[0];
@@ -149,7 +155,7 @@ function ProgressPage({ state, templates, setState, onLogWeight }) {
           {body && <button type="button" className="progress-log-button" onClick={onLogWeight}>+ Log weight</button>}
         </div>
 
-        {!body && (
+        {!body && exerciseOptions.length > 0 && (
           <label className="progress-lift-field">
             <span className="progress-lift-label">Exercise</span>
             <span className="progress-select-wrap">

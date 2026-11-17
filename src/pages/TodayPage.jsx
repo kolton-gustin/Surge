@@ -4,6 +4,16 @@ import "./TodayPage.css";
 function TodayPage({ state, templates, onStart, selectedTemplate, onSelectTemplate, onEditWorkouts }) {
   const today = new Intl.DateTimeFormat("en", { weekday: "long", month: "short", day: "numeric" }).format(new Date());
   const template = templates.find((item) => item.key === selectedTemplate) || templates[0];
+  if (!template) return (
+    <section className="page today-page">
+      <Header eyebrow={today} title="Today" action={<button type="button" className="today-edit-workouts" onClick={onEditWorkouts}>Edit</button>} />
+      <article className="card today-card">
+        <h2>Your workout library is empty</h2>
+        <p className="subtle">Create a Lift or Run workout to build your schedule.</p>
+        <button type="button" className="button full today-start" onClick={onEditWorkouts}>Create workout</button>
+      </article>
+    </section>
+  );
   const completedKeys = state.completedTemplateKeysThisWeek;
   const selectedIsComplete = completedKeys.includes(template.key);
   const selectedIsActive = state.activeSession?.templateKey === template.key;
@@ -35,6 +45,7 @@ function TodayPage({ state, templates, onStart, selectedTemplate, onSelectTempla
                 <span className="today-session-copy">
                   <span className="today-session-number">Session {index + 1}</span>
                   <strong className="today-session-name">{sessionTemplate.name}</strong>
+                  <span className="today-session-description">{sessionTemplate.workoutType || "Lift"}</span>
                   <span className="today-session-description">{sessionTemplate.description}</span>
                 </span>
                 {isDone && <span className="today-session-status">Complete</span>}

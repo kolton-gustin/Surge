@@ -3,7 +3,7 @@ import { supabase } from "./supabaseClient.js";
 import { buildStrengthHistory } from "./progress.js";
 
 const SESSION_SELECT = `
-  id, template_key, name, started_at, completed_at, notes,
+  id, template_key, name, workout_type, run_distance_km, run_average_pace_seconds, started_at, completed_at, notes,
   session_exercises (
     id, session_id, exercise_key, exercise_name, position,
     target_sets, target_rep_min, target_rep_max, rest_seconds, superset_group,
@@ -47,13 +47,15 @@ function mapExercise(row, previousWeights = {}) {
 
 export async function loadWorkoutTemplates() {
   const { data, error } = await supabase.from("workout_templates")
-    .select("id, template_key, name, description, position, workout_template_exercises (id, exercise_key, exercise_name, position, target_sets, target_rep_min, target_rep_max, rest_seconds, superset_group)")
+    .select("id, template_key, name, description, workout_type, target_distance_km, position, workout_template_exercises (id, exercise_key, exercise_name, position, target_sets, target_rep_min, target_rep_max, rest_seconds, superset_group)")
     .order("position");
   if (error) throw error;
   return (data || []).map((template) => ({
     id: template.id,
     key: template.template_key,
     name: template.name,
+    workoutType: template.workout_type || "Lift",
+    targetDistanceMiles: template.target_distance_km == null ? "" : String(Math.round(Number(template.target_distance_km) * 0.621371 * 100) / 100),
     description: template.description || "",
     exercises: [...(template.workout_template_exercises || [])].sort((a, b) => a.position - b.position).map((exercise) => ({
       id: exercise.id, key: exercise.exercise_key, name: exercise.exercise_name,
@@ -93,7 +95,9 @@ export async function loadWorkoutData(workoutTemplates) {
   const latestCompleted = completed.reduce((latest, session) =>
     !latest || Date.parse(session.completed_at) > Date.parse(latest.completed_at) ? session : latest, null);
   const lastTemplateIndex = workoutTemplates.findIndex((template) => template.key === latestCompleted?.template_key);
-  const nextTemplateKey = workoutTemplates[(lastTemplateIndex + 1) % workoutTemplates.length].key;
+  const nextTemplateKey = workoutTemplates.length
+    ? workoutTemplates[(lastTemplateIndex + 1) % workoutTemplates.length].key
+    : null;
 
   const strengthHistory = buildStrengthHistory(completed);
   const mappedGoals = (goalResult.data || []).map((goal) => {
@@ -149,6 +153,10 @@ export async function loadWorkoutData(workoutTemplates) {
       id: session.id,
       date: new Date(session.completed_at).toLocaleDateString("en", { month: "short", day: "numeric" }),
       name: session.name || workoutTemplates.find((template) => template.key === session.template_key)?.name || "Workout",
+      workoutType: session.workout_type || "Lift",
+      runDistanceMiles: session.run_distance_km == null ? null : Math.round(Number(session.run_distance_km) * 0.621371 * 100) / 100,
+      runPaceSeconds: session.run_average_pace_seconds,
+      workoutType: session.workout_type || "Lift",
       lift: best ? `${kgToPounds(best.weight_kg)} × ${best.reps}` : "Workout complete",
     };
   });
@@ -196,6 +204,9 @@ export async function loadWorkoutData(workoutTemplates) {
       id: activeRow.id,
       templateKey: activeRow.template_key,
       name: workoutTemplates.find((template) => template.key === activeRow.template_key)?.name || activeRow.name,
+      workoutType: activeRow.workout_type || "Lift",
+      runDistance: activeRow.run_distance_km == null ? "" : String(Math.round(Number(activeRow.run_distance_km) * 0.621371 * 100) / 100),
+      runPace: formatPace(activeRow.run_average_pace_seconds),
       startedAt: activeRow.started_at,
       restUntil: null,
       exercises: [...(activeRow.session_exercises || [])].sort((a, b) => a.position - b.position).map((row) => mapExercise(row, previousWeightsByExercise.get(row.exercise_key))),
@@ -206,9 +217,11 @@ export async function loadWorkoutData(workoutTemplates) {
 export async function startWorkout(template) {
   if (!template) throw new Error("That workout template could not be found.");
   const { data: session, error: sessionError } = await supabase.from("workout_sessions")
-    .insert({ template_key: template.key, name: template.name })
+    .insert({ template_key: template.key, name: template.name, workout_type: template.workoutType || "Lift" })
     .select("id, started_at").single();
   if (sessionError) throw sessionError;
+
+  if (template.workoutType === "Run") return session.id;
 
   const { data: exercises, error: exerciseError } = await supabase.from("session_exercises").insert(template.exercises.map((exercise, position) => ({
     session_id: session.id,
@@ -245,9 +258,11 @@ function templateKey() {
 export async function saveWorkoutTemplate(values, existingTemplates) {
   const exercises = values.exercises.filter((exercise) => exercise.name.trim());
   if (!values.name.trim()) throw new Error("Give this workout a name.");
-  if (!exercises.length) throw new Error("Add at least one exercise.");
+  if (values.workoutType !== "Run" && !exercises.length) throw new Error("Add at least one exercise.");
   const position = existingTemplates.findIndex((template) => template.id === values.id);
-  const row = { template_key: values.key || templateKey(), name: values.name.trim(), description: values.description.trim(), position: position < 0 ? existingTemplates.length : position };
+  const targetDistanceMiles = values.targetDistanceMiles === "" || values.targetDistanceMiles == null ? null : Number(values.targetDistanceMiles);
+  if (targetDistanceMiles != null && (!Number.isFinite(targetDistanceMiles) || targetDistanceMiles <= 0)) throw new Error("Enter a valid planned distance.");
+  const row = { template_key: values.key || templateKey(), name: values.name.trim(), description: values.description.trim(), workout_type: values.workoutType || "Lift", target_distance_km: values.workoutType === "Run" && targetDistanceMiles != null ? Math.round(targetDistanceMiles / 0.621371 * 1000) / 1000 : null, position: position < 0 ? existingTemplates.length : position };
   let templateId = values.id;
   if (templateId) {
     const { error } = await supabase.from("workout_templates").update(row).eq("id", templateId);
@@ -259,6 +274,7 @@ export async function saveWorkoutTemplate(values, existingTemplates) {
     if (error) throw error;
     templateId = data.id;
   }
+  if (values.workoutType === "Run") return { id: templateId, key: row.template_key };
   const { error } = await supabase.from("workout_template_exercises").insert(exercises.map((exercise, index) => ({
     template_id: templateId, exercise_key: exercise.key || exercise.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, ""),
     exercise_name: exercise.name.trim(), position: index, target_sets: Number(exercise.sets), target_rep_min: Number(exercise.repMin), target_rep_max: Number(exercise.repMax), rest_seconds: Number(exercise.rest), superset_group: exercise.supersetGroup?.trim() || null,
@@ -308,6 +324,36 @@ export async function finishWorkout(sessionId) {
   await Promise.all([...pendingSetSaves.values()]);
   const { error } = await supabase.from("workout_sessions")
     .update({ completed_at: new Date().toISOString() })
+    .eq("id", sessionId);
+  if (error) throw error;
+}
+
+export async function cancelWorkout(sessionId) {
+  // Let any in-flight set saves settle, then remove the parent session. The
+  // database's cascade deletes its exercises and sets, leaving no workout log.
+  await Promise.all([...pendingSetSaves.values()].map((pending) => pending.catch(() => {})));
+  const { error } = await supabase.from("workout_sessions").delete().eq("id", sessionId);
+  if (error) throw error;
+}
+
+function formatPace(seconds) {
+  if (!Number.isFinite(Number(seconds)) || Number(seconds) <= 0) return "";
+  const rounded = Math.round(Number(seconds));
+  return `${Math.floor(rounded / 60)}:${String(rounded % 60).padStart(2, "0")}`;
+}
+
+function paceToSeconds(value) {
+  if (!value) return null;
+  const match = String(value).trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!match || Number(match[2]) >= 60) throw new Error("Average pace must use minutes:seconds, such as 8:30.");
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+export async function saveRunDetails(sessionId, distanceMiles, pace) {
+  const distance = Number(distanceMiles);
+  if (!Number.isFinite(distance) || distance <= 0) throw new Error("Enter the run distance before finishing.");
+  const { error } = await supabase.from("workout_sessions")
+    .update({ run_distance_km: Math.round(distance / 0.621371 * 1000) / 1000, run_average_pace_seconds: paceToSeconds(pace) })
     .eq("id", sessionId);
   if (error) throw error;
 }

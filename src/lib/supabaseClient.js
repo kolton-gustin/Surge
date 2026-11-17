@@ -4,4 +4,6 @@ const url = import.meta.env.VITE_SUPABASE_URL;
 const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 export const supabaseConfigured = Boolean(url && publishableKey);
-export const supabase = url && publishableKey ? createClient(url, publishableKey) : null;
+export const supabase = url && publishableKey
+  ? createClient(url, publishableKey, { auth: { persistSession: true, autoRefreshToken: true } })
+  : null;

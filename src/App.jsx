@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-import { supabaseConfigured } from "./lib/supabaseClient.js";
-import { workoutTemplates } from "./data/workouts.js";
-import { addWorkoutSet, createGoal, deleteGoal, deleteWorkoutTemplate, finishWorkout as finishWorkoutRecord, loadWorkoutData, loadWorkoutTemplates, recordBodyWeight, removeWorkoutSet, saveSet, saveWorkoutTemplate, setGoalCompleted, startWorkout } from "./lib/workoutsApi.js";
+import { supabase, supabaseConfigured } from "./lib/supabaseClient.js";
+import { addWorkoutSet, cancelWorkout, createGoal, deleteGoal, deleteWorkoutTemplate, finishWorkout as finishWorkoutRecord, loadWorkoutData, loadWorkoutTemplates, recordBodyWeight, removeWorkoutSet, saveRunDetails, saveSet, saveWorkoutTemplate, setGoalCompleted, startWorkout } from "./lib/workoutsApi.js";
 import AuthGate from "./components/AuthGate.jsx";
 import BottomNav from "./components/BottomNav.jsx";
 import Modal from "./components/Modal.jsx";
@@ -27,28 +26,19 @@ const initialState = {
   progressMode: "Lifts",
 };
 
-const PASSCODE_UNLOCK_KEY = "gym_app_unlocked";
-
-function getSavedUnlock() {
-  try {
-    return window.localStorage.getItem(PASSCODE_UNLOCK_KEY) === "true";
-  } catch {
-    return false;
-  }
-}
-
 export default function App() {
   const [state, setState] = useState(initialState);
   const [page, setPage] = useState("today");
   const [modal, setModal] = useState(null);
   const [goalToDelete, setGoalToDelete] = useState(null);
-  const [pinUnlocked, setPinUnlocked] = useState(getSavedUnlock);
+  const [session, setSession] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
   const [error, setError] = useState("");
-  const [selectedTemplate, setSelectedTemplate] = useState(workoutTemplates[0].key);
-  const [templates, setTemplates] = useState(workoutTemplates);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [templates, setTemplates] = useState([]);
 
   const refresh = async (currentTemplates = templates) => {
     const data = await loadWorkoutData(currentTemplates);
@@ -57,7 +47,19 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (!pinUnlocked) { setState(initialState); setDataLoading(false); return undefined; }
+    if (!supabaseConfigured) { setAuthLoading(false); return undefined; }
+    let alive = true;
+    supabase.auth.getSession().then(({ data: { session: savedSession } }) => {
+      if (alive) { setSession(savedSession); setAuthLoading(false); }
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (alive) { setSession(nextSession); setAuthLoading(false); }
+    });
+    return () => { alive = false; subscription.unsubscribe(); };
+  }, []);
+
+  useEffect(() => {
+    if (!session) { setState(initialState); setDataLoading(false); return undefined; }
     if (!supabaseConfigured) {
       setError("Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to .env.local.");
       setDataLoading(false);
@@ -66,7 +68,6 @@ export default function App() {
     let alive = true;
     setDataLoading(true);
     Promise.all([loadWorkoutTemplates(),]).then(async ([loadedTemplates]) => {
-      if (!loadedTemplates.length) throw new Error("No workouts are configured. Add a workout in the library.");
       const data = await loadWorkoutData(loadedTemplates);
       if (!alive) return;
       setTemplates(loadedTemplates);
@@ -76,7 +77,7 @@ export default function App() {
     }).catch((loadError) => { if (alive) setError(loadError.message); })
       .finally(() => { if (alive) setDataLoading(false); });
     return () => { alive = false; };
-  }, [pinUnlocked]);
+  }, [session]);
 
   useEffect(() => {
     if (!celebrating) return undefined;
@@ -84,11 +85,19 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [celebrating]);
 
-  const unlockApp = () => {
-    try { window.localStorage.setItem(PASSCODE_UNLOCK_KEY, "true"); } catch { /* Keep this unlock for the current tab if storage is unavailable. */ }
-    setError("");
-    setPinUnlocked(true);
-  };
+  const signIn = ({ email, password }) => runAction(async () => {
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    if (authError) throw authError;
+  });
+  const register = ({ email, password }) => runAction(async () => {
+    const { data, error: authError } = await supabase.auth.signUp({ email, password });
+    if (authError) throw authError;
+    if (!data.session) setError("Check your email to confirm your account, then sign in.");
+  });
+  const signOut = () => runAction(async () => {
+    const { error: authError } = await supabase.auth.signOut();
+    if (authError) throw authError;
+  });
 
   const navigate = (nextPage) => {
     // A focused number field can leave Mobile Safari's nested scroller offset
@@ -110,6 +119,7 @@ export default function App() {
   const beginWorkout = () => runAction(async () => {
     if (!state.activeSession) {
       const template = templates.find((item) => item.key === selectedTemplate) || templates[0];
+      if (!template) throw new Error("Create a workout in Edit before starting.");
       await startWorkout(template);
     }
     await refresh();
@@ -117,11 +127,20 @@ export default function App() {
   });
 
   const handleFinish = () => runAction(async () => {
+    if (state.activeSession.workoutType === "Run") await saveRunDetails(state.activeSession.id, state.activeSession.runDistance, state.activeSession.runPace);
     await finishWorkoutRecord(state.activeSession.id);
     const data = await refresh();
     setSelectedTemplate(data.nextTemplateKey);
     setPage("today");
     setCelebrating(true);
+  });
+
+  const handleCancelWorkout = () => runAction(async () => {
+    if (!state.activeSession) return;
+    await cancelWorkout(state.activeSession.id);
+    await refresh();
+    setModal(null);
+    setPage("today");
   });
 
   const handleSaveSet = (exercise, set) => runAction(() => saveSet(exercise.id, set));
@@ -196,15 +215,16 @@ export default function App() {
     setModal(null);
   });
 
-  if (!pinUnlocked) return <main className="app-shell"><AuthGate onSubmit={unlockApp} error={error} busy={busy} /></main>;
   if (!supabaseConfigured) return <main className="app-shell"><section className="page"><p className="form-error" role="alert">{error || "Supabase is not configured."}</p></section></main>;
+  if (authLoading) return <main className="app-shell"><section className="page"><p className="subtle">Loading your account…</p></section></main>;
+  if (!session) return <main className="app-shell"><AuthGate onSignIn={signIn} onRegister={register} error={error} busy={busy} /></main>;
   if (dataLoading) return <main className="app-shell"><section className="page"><p className="subtle">Loading your workouts…</p></section></main>;
 
   return (
     <main className="app-shell">
       {error && <div className="global-error" role="alert">{error}<button onClick={() => setError("")} aria-label="Dismiss">×</button></div>}
-      {page === "today" && <TodayPage state={state} templates={templates} onStart={beginWorkout} selectedTemplate={selectedTemplate} onSelectTemplate={setSelectedTemplate} onEditWorkouts={() => setModal("workouts")} />}
-      {page === "workout" && <WorkoutPage state={state} setState={setState} onFinish={handleFinish} onSaveSet={handleSaveSet} onAddSet={handleAddSet} onRemoveSet={handleRemoveSet} busy={busy} />}
+      {page === "today" && <><div className="app-tools"><button type="button" className="auth-switch" onClick={signOut}>Sign out</button></div><TodayPage state={state} templates={templates} onStart={beginWorkout} selectedTemplate={selectedTemplate} onSelectTemplate={setSelectedTemplate} onEditWorkouts={() => setModal("workouts")} /></>}
+      {page === "workout" && <WorkoutPage state={state} setState={setState} onFinish={handleFinish} onCancel={() => setModal("cancel-workout")} onSaveSet={handleSaveSet} onAddSet={handleAddSet} onRemoveSet={handleRemoveSet} busy={busy} />}
       {page === "progress" && <ProgressPage state={state} templates={templates} setState={setState} onLogWeight={() => setModal("progress")} />}
       {page === "goals" && <GoalsPage state={state} onNewGoal={() => setModal("goal")} onComplete={(goalId) => changeGoalCompleted(goalId, true)} onReopen={(goalId) => changeGoalCompleted(goalId, false)} onDelete={(goal) => { setGoalToDelete(goal); setModal("delete-goal"); }} busy={busy} />}
       {page !== "workout" && <BottomNav page={page} onNavigate={navigate} />}
@@ -214,6 +234,9 @@ export default function App() {
       {modal === "workouts" && <WorkoutLibrary templates={templates} onSave={saveTemplate} onDelete={removeTemplate} onClose={() => setModal(null)} busy={busy} />}
       {modal === "delete-goal" && goalToDelete && <Modal title="Delete goal?" onClose={() => { setModal(null); setGoalToDelete(null); }} onSubmit={submitDeleteGoal} submitLabel="Delete goal" busy={busy}>
         <p className="subtle">Delete “{goalToDelete.name}” permanently? This cannot be undone.</p>
+      </Modal>}
+      {modal === "cancel-workout" && <Modal title="Discard workout?" onClose={() => setModal(null)} onSubmit={(event) => { event.preventDefault(); handleCancelWorkout(); }} submitLabel="Discard workout" busy={busy}>
+        <p className="subtle">This will permanently remove this in-progress workout and all sets you entered. It will not appear in your history.</p>
       </Modal>}
       {modal === "progress" && <Modal title="Log body weight" onClose={() => setModal(null)} onSubmit={submitProgress}>
         <label className="field">Weight (lb)<input name="value" type="number" min="0.1" step="0.1" required /></label>

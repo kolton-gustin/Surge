@@ -2,6 +2,7 @@ export const workoutTemplates = [
   {
     key: "upper_a",
     name: "Press",
+    workoutType: "Lift",
     description: "Bench and overhead pressing",
     exercises: [
       { key: "bench_press", name: "Barbell bench press", sets: 3, repMin: 6, repMax: 8, rest: 120 },
@@ -14,6 +15,7 @@ export const workoutTemplates = [
   {
     key: "lower_a",
     name: "Squat",
+    workoutType: "Lift",
     description: "Squats and lower body strength",
     exercises: [
       { key: "back_squat", name: "Back squat", sets: 3, repMin: 5, repMax: 7, rest: 150 },
@@ -26,6 +28,7 @@ export const workoutTemplates = [
   {
     key: "upper_b",
     name: "Pull",
+    workoutType: "Lift",
     description: "Rows, pulldowns, and shoulders",
     exercises: [
       { key: "incline_db_press", name: "Incline dumbbell press", sets: 3, repMin: 8, repMax: 10, rest: 90 },
@@ -38,6 +41,7 @@ export const workoutTemplates = [
   {
     key: "lower_b",
     name: "Deadlift",
+    workoutType: "Lift",
     description: "Heavy hinges and leg work",
     exercises: [
       { key: "deadlift", name: "Deadlift", sets: 3, repMin: 4, repMax: 6, rest: 180 },

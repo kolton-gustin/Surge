@@ -440,3 +440,4 @@
     transition: none;
   }
 }
+.discard-workout{display:block;width:100%;margin:18px 0 4px;border:0;background:transparent;color:var(--muted);font:600 13px "DM Sans",sans-serif;cursor:pointer}.discard-workout:hover{color:var(--red)}.discard-workout:disabled{opacity:.55;cursor:not-allowed}
