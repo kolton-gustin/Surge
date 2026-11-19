@@ -30,6 +30,9 @@ body {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: none;
+  overflow-anchor: none;
+  scroll-behavior: auto;
+  -webkit-overflow-scrolling: touch;
   padding-top: max(56px, calc(20px + env(safe-area-inset-top)));
   padding-right: max(20px, env(safe-area-inset-right));
   padding-left: max(20px, env(safe-area-inset-left));
@@ -50,6 +53,17 @@ body {
   transform: translateX(-50%);
   background: #fff;
   backdrop-filter: none;
+}
+
+.modal-backdrop {
+  padding-top: max(20px, env(safe-area-inset-top));
+  padding-right: max(20px, env(safe-area-inset-right));
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+  padding-left: max(20px, env(safe-area-inset-left));
+}
+
+.modal {
+  max-height: calc(100dvh - max(40px, calc(env(safe-area-inset-top) + env(safe-area-inset-bottom))));
 }
 
 .app-shell button,

@@ -368,7 +368,7 @@
 
 .workout-page .finish-workout-cta {
   position: sticky;
-  bottom: 10px;
+  bottom: calc(10px + env(safe-area-inset-bottom));
   z-index: 3;
   display: flex;
   align-items: center;

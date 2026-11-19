@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { supabase, supabaseConfigured } from "./lib/supabaseClient.js";
 import { addWorkoutSet, cancelWorkout, createGoal, deleteGoal, deleteWorkoutTemplate, finishWorkout as finishWorkoutRecord, loadWorkoutData, loadWorkoutTemplates, recordBodyWeight, removeWorkoutSet, saveRunDetails, saveSet, saveWorkoutTemplate, setGoalCompleted, startWorkout } from "./lib/workoutsApi.js";
 import AuthGate from "./components/AuthGate.jsx";
@@ -26,6 +26,18 @@ const initialState = {
   progressMode: "Lifts",
 };
 
+const activeExerciseStorageKey = (sessionId) => `surge_active_exercise_${sessionId}`;
+
+function savedActiveExerciseIndex(sessionId) {
+  if (!sessionId) return 0;
+  try {
+    const value = Number(window.localStorage.getItem(activeExerciseStorageKey(sessionId)));
+    return Number.isInteger(value) && value >= 0 ? value : 0;
+  } catch {
+    return 0;
+  }
+}
+
 export default function App() {
   const [state, setState] = useState(initialState);
   const [page, setPage] = useState("today");
@@ -45,6 +57,25 @@ export default function App() {
     setState((current) => ({ ...initialState, ...data, progressMode: current.progressMode, selectedLiftKey: current.selectedLiftKey, activeExerciseIndex: Math.min(current.activeExerciseIndex || 0, Math.max(0, (data.activeSession?.exercises.length || 1) - 1)) }));
     return data;
   };
+
+  // Every app view owns its own scroll position. Reset it before and after a
+  // page swap so Mobile Safari cannot carry a nested scroll offset from the
+  // finished workout into Today (especially after the keyboard was open).
+  useLayoutEffect(() => {
+    const resetViewport = () => {
+      const appPage = document.querySelector(".app-shell .page");
+      appPage?.scrollTo(0, 0);
+      window.scrollTo(0, 0);
+    };
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    resetViewport();
+    const frame = window.requestAnimationFrame(resetViewport);
+    const timer = window.setTimeout(resetViewport, 80);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [page]);
 
   useEffect(() => {
     if (!supabaseConfigured) { setAuthLoading(false); return undefined; }
@@ -71,13 +102,32 @@ export default function App() {
       const data = await loadWorkoutData(loadedTemplates);
       if (!alive) return;
       setTemplates(loadedTemplates);
-      setState((current) => ({ ...initialState, ...data, progressMode: current.progressMode, selectedLiftKey: current.selectedLiftKey, activeExerciseIndex: 0 }));
+      setState((current) => ({
+        ...initialState,
+        ...data,
+        progressMode: current.progressMode,
+        selectedLiftKey: current.selectedLiftKey,
+        activeExerciseIndex: Math.min(
+          savedActiveExerciseIndex(data.activeSession?.id),
+          Math.max(0, (data.activeSession?.exercises.length || 1) - 1),
+        ),
+      }));
       setSelectedTemplate(data.nextTemplateKey);
       if (data.activeSession) setPage("workout");
     }).catch((loadError) => { if (alive) setError(loadError.message); })
       .finally(() => { if (alive) setDataLoading(false); });
     return () => { alive = false; };
   }, [session]);
+
+  useEffect(() => {
+    const sessionId = state.activeSession?.id;
+    if (!sessionId) return;
+    try {
+      window.localStorage.setItem(activeExerciseStorageKey(sessionId), String(state.activeExerciseIndex || 0));
+    } catch {
+      // The workout can still be resumed from the beginning if storage is unavailable.
+    }
+  }, [state.activeSession?.id, state.activeExerciseIndex]);
 
   useEffect(() => {
     if (!celebrating) return undefined;
@@ -129,6 +179,7 @@ export default function App() {
   const handleFinish = () => runAction(async () => {
     if (state.activeSession.workoutType === "Run") await saveRunDetails(state.activeSession.id, state.activeSession.runDistance, state.activeSession.runPace);
     await finishWorkoutRecord(state.activeSession.id);
+    try { window.localStorage.removeItem(activeExerciseStorageKey(state.activeSession.id)); } catch { /* No stored position to remove. */ }
     const data = await refresh();
     setSelectedTemplate(data.nextTemplateKey);
     setPage("today");
@@ -137,7 +188,9 @@ export default function App() {
 
   const handleCancelWorkout = () => runAction(async () => {
     if (!state.activeSession) return;
-    await cancelWorkout(state.activeSession.id);
+    const sessionId = state.activeSession.id;
+    await cancelWorkout(sessionId);
+    try { window.localStorage.removeItem(activeExerciseStorageKey(sessionId)); } catch { /* No stored position to remove. */ }
     await refresh();
     setModal(null);
     setPage("today");

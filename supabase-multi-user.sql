@@ -14,10 +14,7 @@ alter table public.goals add column if not exists user_id uuid references auth.u
 alter table public.body_measurements add column if not exists user_id uuid references auth.users(id) on delete cascade default auth.uid();
 
 alter table public.workout_templates add column if not exists workout_type text not null default 'Lift' check (workout_type in ('Lift', 'Run'));
-alter table public.workout_templates add column if not exists target_distance_km numeric check (target_distance_km > 0);
 alter table public.workout_sessions add column if not exists workout_type text not null default 'Lift' check (workout_type in ('Lift', 'Run'));
-alter table public.workout_sessions add column if not exists run_distance_km numeric check (run_distance_km > 0);
-alter table public.workout_sessions add column if not exists run_average_pace_seconds integer check (run_average_pace_seconds > 0);
 
 -- template_key used to be globally unique. Each account now has its own library.
 alter table public.workout_templates drop constraint if exists workout_templates_template_key_key;
@@ -61,13 +58,13 @@ commit;
 
 -- OPTIONAL: claim the data from the old single-user version for its owner.
 -- First create/sign in to that account, copy its UUID from Authentication > Users,
--- replace YOUR-USER-UUID below, then run this block separately. Do not run it after
+-- replace 8d92782c-40d4-4fb0-bc49-0e309350637d below, then run this block separately. Do not run it after
 -- inviting other people: it assigns every still-unowned legacy row to one account.
 --
--- update public.workout_templates set user_id = 'YOUR-USER-UUID' where user_id is null;
--- update public.workout_template_exercises set user_id = 'YOUR-USER-UUID' where user_id is null;
--- update public.workout_sessions set user_id = 'YOUR-USER-UUID' where user_id is null;
--- update public.session_exercises set user_id = 'YOUR-USER-UUID' where user_id is null;
--- update public.workout_sets set user_id = 'YOUR-USER-UUID' where user_id is null;
--- update public.goals set user_id = 'YOUR-USER-UUID' where user_id is null;
--- update public.body_measurements set user_id = 'YOUR-USER-UUID' where user_id is null;
+update public.workout_templates set user_id = '8d92782c-40d4-4fb0-bc49-0e309350637d' where user_id is null;
+update public.workout_template_exercises set user_id = '8d92782c-40d4-4fb0-bc49-0e309350637d' where user_id is null;
+update public.workout_sessions set user_id = '8d92782c-40d4-4fb0-bc49-0e309350637d' where user_id is null;
+update public.session_exercises set user_id = '8d92782c-40d4-4fb0-bc49-0e309350637d' where user_id is null;
+update public.workout_sets set user_id = '8d92782c-40d4-4fb0-bc49-0e309350637d' where user_id is null;
+update public.goals set user_id = '8d92782c-40d4-4fb0-bc49-0e309350637d' where user_id is null;
+update public.body_measurements set user_id = '8d92782c-40d4-4fb0-bc49-0e309350637d' where user_id is null;
